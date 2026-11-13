@@ -1,0 +1,99 @@
+/* ==========================================================================
+   DESIGN TOKENS — Júlia Pedó
+   Única fonte de verdade para cor, tipografia, espaçamento, forma, movimento e camadas.
+   Componentes só consomem var(--token); valores soltos devem virar token aqui.
+
+   UNIDADE "u": o original (Readymag) desenha num canvas de 1024 de largura (desktop) e
+   320 (mobile), escalado pela largura da janela. 1u = 100vw / largura do canvas.
+   Tokens numéricos sem unidade (ex.: --fs-nav: 33) são MULTIPLICADOS por var(--u):
+   font-size: calc(var(--u) * var(--fs-nav)).
+   ========================================================================== */
+
+:root {
+  /* ---------- Cor: paleta da marca ---------- */
+  --color-black: #0d0c0c; /* quase preto */
+  --color-light-blue: #bef5fc; /* azul claro */
+  --color-red: #7f1616; /* vermelho */
+  --color-yellow: #ffff71; /* amarelo */
+  --color-off-white: #f9ffe1; /* off white */
+
+  /* ---------- Cor: uso ---------- */
+  --color-bg: #0d0c0c; /* fundo de todas as páginas */
+  --color-ink: #ffffff; /* texto de corpo */
+  --color-accent: #c1f8fc; /* azul-gelo: menu, wordmark, "Contato" */
+
+  /* ---------- Tipografia: famílias e pesos ---------- */
+  --font-body: 'Manrope', system-ui, sans-serif;
+  --font-hand: 'Julia Regular', cursive;
+  --weight-light: 300;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ---------- Tipografia: tamanhos e entrelinhas (u, desktop) ---------- */
+  --fs-nav: 40px; /* galeria, projetos e sobre: mesmo tamanho (px reais) */
+  --fs-nav-mobile: 24px;
+  --lh-label: 1.2;
+
+  /* ---------- Escala mobile (multiplicadores sobre os tamanhos de desktop) ---------- */
+
+  /* ---------- Espaçamento (u) ---------- */
+
+  /* ---------- Layout (u) ---------- */
+  --h-nav: 68px; /* altura da navbar */
+  --h-nav-mobile: 52px;
+  --h-nav-atual: var(--h-nav); /* a que está valendo no breakpoint */
+  --w-nav-logo: 57.5; /* u (50 + 15%) */
+  --w-nav-logo-mobile: 46; /* u (40 + 15%) */
+  --space-nav-gap: 28px; /* espaço entre os itens do menu */
+  --space-nav-gap-mobile: 16px;
+  --space-nav-edge: 37; /* u: margem direita da navbar */
+  --space-nav-edge-mobile: 16; /* u */
+
+  /* ---------- Forma ---------- */
+  --space-modal-gap: 12px; /* imagem → link no modal */
+  --space-modal-gap: 12px; /* imagem → link no modal */
+  --border-dashed: 1px dashed;
+
+  /* ---------- Cursor (SVGs em public/cursors; hotspot = x y em px) ---------- */
+  --cursor-default: url('/cursors/estrela.svg') 17 22, auto; /* fallback sem JS; estrela 33,1×44,2px (+20%) */
+  --cursor-link: url('/cursors/lapis.svg') 8 1, pointer;
+
+  /* ---------- Opacidade ---------- */
+  --cursor-w: 33.1px; /* cursor customizado (scripts/cursor.ts): estrela */
+  --cursor-h: 44.2px;
+
+  --opacity-hover: 0.8;
+  --opacity-muted: 0.6;
+
+  /* ---------- Movimento ---------- */
+  --duration-fast: 0.3s; /* hover, foco, cor */
+  --duration-base: 0.45s; /* aparecer/sumir: cursor, modal */
+  --duration-modal: 0.8s; /* expansão do card: igual para todos */
+  --ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1); /* suave nas duas pontas */
+  --ease-soft: cubic-bezier(0.22, 0.61, 0.36, 1); /* desacelera com delicadeza */
+  --ease-expand: cubic-bezier(0.45, 0, 0.2, 1); /* arranca e pousa devagar */
+
+  /* ---------- Camadas ---------- */
+  --z-fixed: 10;
+  --z-modal: 50;
+  --z-cursor: 100;
+
+  /* ---------- Galeria: canvas infinito ---------- */
+  --card-h: 330px; /* altura-alvo dos cards: o script ajusta para as linhas preencherem a altura da tela exatamente */
+  --card-gap: 32px; /* espaço entre cards, na horizontal e na vertical */
+  --card-nudge: 12px;
+  --color-galeria-bg: var(--color-off-white); /* desalinho máximo (para baixo) de alguns cards */
+
+  /* ---------- Canvas ---------- */
+  --canvas-w: 1024;
+  --u: calc(100vw / var(--canvas-w));
+}
+
+@media (max-width: 767px) {
+  :root {
+    --canvas-w: 320;
+    --h-nav-atual: var(--h-nav-mobile);
+    --card-h: 210px;
+  }
+}

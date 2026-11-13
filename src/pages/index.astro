@@ -1,0 +1,1079 @@
+---
+// Home: experiência de entrada (scripts/experiencia.ts)
+//  1. cards flutuam soltos ao redor da Juju, centralizada (fundo off white), sem tapá-la
+//  2. ~800ms depois entram no computador dela
+//  3. saem enfileirados na horizontal (80% da tela) num novo viewport; o fundo vira azul
+//  4. a câmera dá um zoom e passa por cada card da fila, como num plano de filme
+//  5. a fila explode num mundo em forma de esfera, feito de cards alinhados (arraste para girar)
+import { getCollection, render } from 'astro:content';
+import { Image } from 'astro:assets';
+import Base from '../layouts/Base.astro';
+import PostTile from '../components/PostTile.astro';
+import ContatoLinks from '../components/ContatoLinks.astro';
+import gif from '../assets/sobre/julia-pedo.gif';
+import wordmarkPreto from '../assets/sobre/wordmark-preto.png';
+import coisa09 from '../assets/sobre/coisas-09.png';
+import coisa10 from '../assets/sobre/coisas-10.png';
+import coisa11 from '../assets/sobre/coisas-11.png';
+import coisa12 from '../assets/sobre/coisas-12.png';
+import coisa13 from '../assets/sobre/coisas-13.png';
+import noite from '../assets/sobre/noite-embacada.png';
+import fotoSobre from '../assets/sobre/foto-sobre.jpeg';
+import foto8321 from '../assets/sobre/foto-8321.jpg';
+import foto8322 from '../assets/sobre/foto-8322.jpg';
+import foto8323 from '../assets/sobre/foto-8323.jpg';
+
+// coisas que saem da cabeça dela ao pairar no GIF: w = largura, dx/dy = destino a partir da cabeça, r = giro (unidade k, ver .estrela)
+const coisas = [
+  // posições escolhidas à mão (modo ?editar), em unidades k a partir da cabeça
+  { src: coisa09, w: 27.54, dx: -44.7, dy: -9.3, r: -4, d: 0 },
+  { src: noite, w: 17.95, dx: -62.0, dy: 18.1, r: 3, d: 120 }, // mesma altura da coisas-09
+  { src: coisa11, w: 24.3, dx: -37.5, dy: 39.4, r: 5, d: 240 },
+  { src: coisa10, w: 22.95, dx: 35.5, dy: -14.6, r: 3, d: 60 },
+  { src: coisa13, w: 20.25, dx: 54.1, dy: 5.3, r: 4, d: 180 }, // entre as duas, mais para fora
+  { src: coisa12, w: 23.69, dx: 38.5, dy: 29.8, r: -4, d: 300 },
+];
+import juju from '../assets/juju-vermelho.svg';
+import { ArrowDown, ArrowUpRight, ChevronsRight, Globe, LayoutGrid } from '@lucide/astro';
+
+const posts = (await getCollection('posts'))
+  // só imagens (sem pendentes) e sem o card horizontal (talheres), que não cabe na esfera
+  .filter((p) => p.data.tipo === 'imagem' && p.data.image && p.data.desktop.w / p.data.desktop.h < 1.5)
+  .sort((a, b) => a.data.ordem - b.data.ordem);
+const capas = import.meta.glob<{ default: ImageMetadata }>('../assets/projetos/*.{jpg,jpeg,png,webp}', { eager: true });
+const capaDe = (id: string) => Object.entries(capas).find(([k]) => k.split('/').pop()!.replace(/\.[^.]+$/, '') === id)?.[1].default;
+const projetosLista = await Promise.all(
+  (await getCollection('projetos'))
+    .sort((a, b) => a.data.ordem - b.data.ordem)
+    .map(async (p) => ({ ...p.data, id: p.id, Content: (await render(p)).Content, capa: capaDe(p.id) ?? p.data.imagem })),
+);
+---
+
+<Base title="Júlia Pedó — designer visual" canvas intro>
+  <div class="grao" style="--op-e: calc((1 - var(--grao-bg, 0)) * 0.28); --op-c: calc(var(--grao-bg, 0) * 0.28)"><i class="grao__c grao__c--escuro"></i><i class="grao__c grao__c--claro"></i></div>
+  <div class="camera" data-camera>
+    <div class="juju" aria-hidden="true">
+      <Image class="juju__img" data-juju src={juju} alt="" loading="eager" />
+    </div>
+    <div class="esfera-mira">
+      <div class="esfera" data-esfera>
+        <!-- estrutura da esfera: meridianos e paralelos de 0,8px sob os cards (scripts/experiencia.ts) -->
+        <svg class="esfera__linhas" data-linhas aria-hidden="true">
+          <path data-linhas-tras class="esfera__tras" />
+          <path data-linhas-frente class="esfera__frente" />
+        </svg>
+        {posts.map((post) => <PostTile post={post} nudge={0} />)}
+      </div>
+    </div>
+  </div>
+  <!-- a estrela offwhite cresce com a rolagem até cobrir a tela; surge o GIF e, rolando mais, a sequência "sobre" -->
+  <div class="estrela" data-estrela>
+    <div class="estrela__mundo" data-mundo>
+      <div class="estrela__campo"></div>
+      <!-- vetor recortado no contorno da estrela: nítido em qualquer tamanho -->
+      <svg class="estrela__forma" viewBox="19.38 82.31 225.45 230.41" preserveAspectRatio="xMidYMax meet">
+        <path d="M236.95,160.3l-59.93,46.86c5,22.98,10.4,46.19,20.1,67.77,3.59,7.98,8.03,14.81,2.35,21.92-13.54,16.87-24.48-8.31-45.3-24.82l-29.23-23.19-57.13,50.91c-6.04,5.39-12,18.86-24.29,10.09-6.85-4.89.46-17.17,3.74-24.15l32.72-69.38-48.17-28.86c-4.57-2.75-12.36-5.75-12.43-11.19-.07-4.22,7.98-10.23,12.93-10.61l72.15-5.66,25.8-60.35,5.63-11.04c.77-3.43,3.69-5.97,7.16-6.26,3.55-.29,6.9,1.85,8.15,5.21l11.38,64.99,68.75-10.2c3.86-.58,11.6,1.03,13.01,4.36,2.08,4.86-2.87,10.04-7.4,13.59Z" />
+      </svg>
+      <!-- grão do offwhite: acima da estrela (que é opaca), abaixo do palco e dos textos -->
+      <div class="grao grao--campo" style="--op-e: 0.28"><i class="grao__c grao__c--escuro"></i></div>
+      <div class="palco">
+        <img class="palco__gif" src={gif.src} width={gif.width} height={gif.height} alt="" />
+        <Image class="palco__wordmark" src={wordmarkPreto} alt="Júlia Pedó" widths={[400, 800]} sizes="40vh" />
+        {coisas.map((c) => <Image class="coisa" src={c.src} alt="" widths={[300, 600]} sizes="20vh" style={`--w:${c.w};--dx:${c.dx};--dy:${c.dy};--r:${c.r}deg;--d:${c.d}ms`} />)}
+        <div class="palco__alvo" data-alvo></div>
+      </div>
+      <p class="verso verso--topo" data-tx="gif">Pelas ideias inacabadas</p>
+      <p class="verso verso--base" data-tx="gif" data-tx-atraso="350" style="--atraso:350ms">e por quem<br />insiste nelas</p>
+    <div class="sobre-pilha">
+    <!-- seção da foto: offwhite, foto em full-bleed à esquerda (800px de altura), cantos que se endireitam ao entrar -->
+    <section class="foto-seq" aria-label="Sobre mim">
+      <div class="grao"><i class="grao__c grao__c--escuro"></i></div>
+      <figure class="foto-seq__fig foto-seq__fig--a"><Image src={foto8323} alt="" widths={[600, 1200]} sizes="30vw" loading="eager" /></figure>
+      <div class="foto-seq__txt"><p class="foto-seq__texto" data-tx="foto">Comecei a trabalhar com design aos 15 e nunca consegui largar o vício</p></div>
+      <div class="foto-seq__txt foto-seq__txt--topo"><p class="foto-seq__mini" data-tx="foto" data-tx-atraso="200" style="--atraso:200ms">Sou de Porto Alegre e estudo Design na PUCRS</p></div>
+      <div class="foto-seq__txt foto-seq__txt--base"><p class="foto-seq__texto foto-seq__texto--m" data-tx="foto" data-tx-atraso="350" style="--atraso:350ms">Hoje sou Designer JR no Studio Pirá e faço freelas, de social media a identidade visual e capas de disco.</p></div>
+      <figure class="foto-seq__fig foto-seq__fig--b"><Image src={foto8322} alt="" widths={[500, 1000]} sizes="25vw" loading="eager" /></figure>
+      <figure class="foto-seq__fig foto-seq__fig--c"><Image src={fotoSobre} alt="Júlia Pedó" widths={[500, 1000]} sizes="25vw" loading="eager" /></figure>
+      <figure class="foto-seq__fig foto-seq__fig--d"><Image src={foto8321} alt="" widths={[400, 800]} sizes="20vw" loading="eager" /></figure>
+    </section>
+    <section class="sobre-seq" aria-label="Sobre">
+      <div class="grao"><i class="grao__c grao__c--escuro"></i><i class="grao__c grao__c--claro"></i></div>
+      <!-- cavalo em dither, de fundo, em difference (a espiral áurea está guardada em scripts/cavalo.ts: para reativar, acrescente <canvas class="cavalo__aurea" data-aurea>) -->
+      <canvas class="cavalo__canvas" data-cavalo role="img" aria-label="Cavalo correndo"></canvas>
+      <div class="hero">
+        <p class="hero__trabalho" aria-hidden="true" data-tx="sobre" data-tx-atraso="320" style="--atraso:320ms">trabalho com</p>
+        <div class="rotativa" data-rotativa tabindex="0">
+          <span class="sr-only">trabalho com capa de disco, identidade visual, flyer de evento, social media</span>
+          <span class="rotativa__itens" aria-hidden="true">
+            <span class="rotativa__item is-ativa" data-tx="rot">Capa de Disco</span>
+            <span class="rotativa__item" data-tx="rot">Identidade Visual</span>
+            <span class="rotativa__item" data-tx="rot">Flyer de Evento</span>
+            <span class="rotativa__item" data-tx="rot">Social Media</span>
+          </span>
+        </div>
+        <ul class="pilulas">
+          <li class="pilula" style="--rot:-3deg"><span data-tx="sobre">5+ anos de atuação</span></li>
+          <li class="pilula" style="--rot:2deg"><span data-tx="sobre" data-tx-atraso="80" style="--atraso:80ms">Porto Alegre</span></li>
+          <li class="pilula" style="--rot:-2deg"><span data-tx="sobre" data-tx-atraso="160" style="--atraso:160ms">Designer Jr · Studio Pirá</span></li>
+          <li class="pilula pilula--destaque" style="--rot:3deg"><span data-tx="sobre" data-tx-atraso="240" style="--atraso:240ms">Aberta a freelas</span></li>
+        </ul>
+      </div>
+    </section>
+    <section class="proj-seq" aria-label="Projetos selecionados">
+      <div class="grao"><i class="grao__c grao__c--escuro" style="--op-e:0.28"></i></div>
+      {projetosLista.map((pr) => (
+        <article class="proj">
+          <div class="proj__txt">
+            <h3 class="proj__titulo" data-tx="proj">{pr.titulo}</h3>
+            <p class="proj__legenda" data-tx="proj" data-tx-atraso="120" style="--atraso:120ms">{pr.subtitulo}</p>
+            <div class="proj__desc" data-tx="proj" data-tx-atraso="200" style="--atraso:200ms"><pr.Content /></div>
+            {pr.link && <a class="proj__behance" href={pr.link} target="_blank" rel="noopener"><span>Behance</span><ArrowUpRight size={'1em'} strokeWidth={2} aria-hidden="true" /></a>}
+          </div>
+          {(() => {
+            const miolo = pr.capa ? (pr.capa.format === 'gif' ? <img src={pr.capa.src} alt={pr.titulo} width={pr.capa.width} height={pr.capa.height} /> : <Image src={pr.capa} alt={pr.titulo} widths={[600, 1000, 1600]} sizes="55vw" />) : <span class="proj__pend">{pr.titulo}<small>capa pendente</small></span>;
+            return pr.link ? <a class="proj__img" href={pr.link} target="_blank" rel="noopener" aria-label={`Ver o projeto ${pr.titulo}`}>{miolo}</a> : <div class="proj__img">{miolo}</div>;
+          })()}
+        </article>
+      ))}
+    </section>
+    <section class="rod-seq" aria-label="Contato">
+      <div class="grao"><i class="grao__c grao__c--escuro"></i></div>
+      <h2 class="rod-seq__tit" data-tx="rod">Onde me encontrar</h2>
+      <Image class="rod-seq__juju" src={juju} alt="" widths={[600, 1200]} sizes="40vw" />
+      <ContatoLinks class="rod-seq__contato" tx="rod" pilulas />
+      <a class="rod-seq__credito" href="https://www.linkedin.com/in/georgialirahoffmann/" target="_blank" rel="noopener"><span data-tx="rod" data-tx-atraso="300" style="--atraso:300ms">Powered by Georgia Hoffmann</span><ArrowUpRight size={'1em'} strokeWidth={2.2} aria-hidden="true" /></a>
+    </section>
+    </div>
+    </div>
+  </div>
+  <!-- topo à direita, alinhado ao "sobre": toggle de visualização (mesma altura do texto) + microinfo -->
+  <div class="topo-dir">
+    <p class="micro micro--dir" data-tx="micro">Criando por afeto e<br />conexões com o mundo</p>
+    <div class="visao" data-visao role="radiogroup" aria-label="Alterar visualização">
+      <button type="button" role="radio" aria-checked="true" aria-label="Esfera" title="Esfera" data-modo="esfera">
+        <Globe strokeWidth={1.8} />
+      </button>
+      <button type="button" role="radio" aria-checked="false" aria-label="Galeria" title="Galeria" data-modo="galeria">
+        <LayoutGrid strokeWidth={1.8} />
+      </button>
+    </div>
+  </div>
+  <!-- microinfos: topo da esfera, alinhadas ao logo (esquerda) e ao "sobre" (direita) -->
+  <p class="micro micro--esq" data-tx="micro">Porto Alegre, Brasil<br />Disponível remotamente</p>
+  <ContatoLinks class="contato-esf" />
+  <p class="dica-scroll" aria-hidden="true">Scrolle para revelar <ArrowDown size={14} strokeWidth={1.8} /></p>
+  <!-- informações do card sob o mouse: título (bold) à esquerda; função e link à direita -->
+  <div class="info" data-info aria-live="polite">
+    <strong class="info__titulo" data-info-titulo></strong>
+    <span class="info__lado"><span data-info-funcao></span><a data-info-link href="#" target="_blank" rel="noopener">Ver post →</a></span>
+  </div>
+  <button type="button" class="pular" data-pular aria-label="Ir direto para a esfera">
+    <ChevronsRight size={28} strokeWidth={1.6} />
+  </button>
+</Base>
+
+<script>
+  import '../scripts/experiencia.ts';
+  import '../scripts/rotativa.ts';
+  import '../scripts/cavalo.ts';
+</script>
+
+<style is:global>
+  @property --fundo-vivo {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #f9ffe1;
+  }
+  @property --fg-vivo {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #7f1616;
+  }
+  .camera {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 200%; /* viewport 1 (Juju) + viewport 2 (fila e esfera) */
+    will-change: transform;
+  }
+  /* estrela de rolagem (mouse icon-10), offwhite: cresce com a rolagem até cobrir a tela toda.  k = unidade de tamanho do palco */
+  .estrela {
+    --k: min(1vh, 1.2vw);
+    --t-base: clamp(22px, 2.7vw, 42px); /* corpo tipográfico de referência dos versos do gif */
+    position: absolute;
+    inset: 0;
+    z-index: 5; /* acima da esfera, abaixo da navbar e dos botões */
+    overflow: hidden;
+    pointer-events: none;
+    visibility: hidden;
+    --w: 0px;
+    --op: 0;
+    --campo: 0;
+    --gif: 0;
+  }
+  .estrela__mundo {
+    position: absolute;
+    inset: 0;
+  }
+  .estrela__forma {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    display: block;
+    width: var(--w); /* vetor redimensionado por layout (não por transform): sempre nítido */
+    height: auto;
+    aspect-ratio: 225.45 / 230.41;
+    fill: var(--color-off-white);
+    opacity: var(--op);
+    transform: translate(-50%, -50%);
+  }
+  /* garantia de cobertura total ao fim do crescimento */
+  .estrela__campo {
+    position: absolute;
+    inset: 0;
+    background: var(--color-off-white);
+    opacity: var(--campo);
+  }
+  /* palco do GIF (quadro 3:4 com margem vazia: o selo ocupa ~58% da largura) + wordmark logo abaixo */
+  .palco {
+    position: absolute;
+    left: 50%;
+    top: calc(50% - 49.2 * var(--k));
+    width: calc(63 * var(--k));
+    height: calc(84 * var(--k));
+    transform: translateX(-50%);
+    opacity: var(--gif);
+  }
+  .palco__gif {
+    position: relative;
+    z-index: 1; /* acima das coisas: elas saem de trás do selo */
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .palco__wordmark {
+    position: absolute;
+    z-index: 1;
+    left: 52%;
+    top: calc(80% + 21px);
+    width: calc(45 * var(--k)); /* +25% */
+    height: auto;
+    transform: translateX(-50%);
+  }
+  /* área que reage ao pairar e ao clique: o selo */
+  .palco__alvo {
+    position: absolute;
+    z-index: 3;
+    left: 22%;
+    top: 24%;
+    width: 60%;
+    height: 54%;
+  }
+  .estrela.is-gif .palco__alvo {
+    pointer-events: auto;
+  }
+  /* coisas: nascem escondidas atrás do selo (cabeça), deslizam até o destino ao pairar e voltam ao parar */
+  /* o prefixo sobe a especificidade acima de `.page img:not(...)` do global.css, que sobrescrevia a transição de volta */
+  .estrela .palco .coisa {
+    position: absolute;
+    z-index: 0;
+    left: 52%; /* cabeça dela */
+    top: 40%;
+    width: calc(var(--w) * var(--k));
+    height: auto;
+    opacity: 0;
+    /* mesmas funções de transform do estado aberto (translate, rotate, scale): a interpolação é função a função, sem salto */
+    transform: translate(-50%, -50%) rotate(var(--r)) scale(0.5);
+    will-change: transform;
+    /* volta: espelha a saída. Mesmo escalonamento (--d), curva suave nas duas pontas, 1,6s; some só no fim, já atrás do selo */
+    transition:
+      transform 1.6s cubic-bezier(0.45, 0.05, 0.25, 1) var(--d),
+      opacity 0.5s ease-in-out calc(var(--d) + 1.1s);
+  }
+  .estrela .palco:has(.palco__alvo:hover) .coisa,
+  .estrela .palco.is-aberto .coisa {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--dx) * var(--k)), calc(-50% + var(--dy) * var(--k))) rotate(var(--r)) scale(1);
+    transition:
+      transform 1.1s var(--ease-soft) var(--d),
+      opacity 0.2s linear var(--d);
+  }
+  /* sequência "sobre": segue o viewport do GIF, ainda sobre o bege. Manrope em tudo: tracking -0,04em, entrelinha 0,9.
+     Alinhamento pela navbar: margem esquerda = logo, direita = "sobre" */
+  /* cavalo: fundo da seção "trabalho com", em difference (contraste com a cor da vez); fica abaixo do texto */
+  .cavalo__canvas,
+  .cavalo__aurea {
+    position: absolute;
+    image-rendering: pixelated; /* células do dither nítidas */
+    pointer-events: none;
+  }
+  .cavalo__canvas {
+    z-index: 0;
+    left: 50%;
+    top: 50%;
+    width: 80vw; /* o desenho ocupa ~70% da largura da tela */
+    aspect-ratio: 640 / 440;
+    transform: translate(-50%, -50%);
+    mix-blend-mode: difference;
+  }
+  /* espiral áurea (guardada, sem uso no momento): em difference, 15% menor, centrada */
+  .cavalo__aurea {
+    inset: 7.5%;
+    width: 85%;
+    height: 85%;
+    mix-blend-mode: difference;
+  }
+  /* pilha das seções que sobem depois do GIF: foto, depois "trabalho com" */
+  .sobre-pilha {
+    position: absolute;
+    left: 0;
+    top: 100%;
+    width: 100%;
+  }
+  /* diagramação definida na página /teste-grid: 12 colunas × 10 linhas, 24px de distância, margens 52 / 68 (quadro 1440×900) */
+  .foto-seq {
+    --edge: var(--space-nav-edge);
+    --mx: calc(var(--u) * var(--edge));
+    --my: 68px;
+    position: relative;
+    width: 100%;
+    height: max(100vh, 700px);
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-rows: repeat(10, minmax(0, 1fr));
+    gap: 24px;
+    padding: var(--my) var(--mx);
+    background: var(--color-off-white);
+    font-family: var(--font-body);
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    color: var(--color-red);
+    pointer-events: auto;
+  }
+  .foto-seq .grao {
+    --op-e: 0.28;
+  }
+  .foto-seq__fig {
+    position: relative; /* acima do grão */
+    margin: 0;
+    overflow: hidden; /* os cantos arredondam pelo script, ligados à rolagem */
+  }
+  .foto-seq__fig img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .foto-seq__fig--a { grid-column: 1 / 5; grid-row: 1 / -1; margin: calc(var(--my) * -1) 0 calc(var(--my) * -1) calc(var(--mx) * -1); } /* sangra: esquerda, topo e base */
+  .foto-seq__fig--b { grid-column: 5 / 8; grid-row: 5 / 11; }
+  .foto-seq__fig--c { grid-column: 8 / 11; grid-row: 1 / 7; }
+  .foto-seq__fig--d { grid-column: 11 / 13; grid-row: 5 / 9; }
+  .foto-seq__fig--d img { width: calc(100% + 16px); max-width: none; } /* enquadramento 8px mais à direita */
+  .foto-seq__txt {
+    position: relative;
+    grid-column: 5 / 8;
+    grid-row: 1 / 5;
+    display: flex;
+    align-items: center;
+  }
+  .foto-seq__txt--topo { grid-column: 11 / 13; grid-row: 1 / 5; align-items: flex-start; }
+  .foto-seq__txt--base { grid-column: 8 / 11; grid-row: 7 / 11; align-items: flex-end; }
+  .foto-seq__mini {
+    margin: 0;
+    font-size: clamp(14px, 1.5vw, 22px); /* como o "trabalho com" */
+    font-weight: var(--weight-medium);
+  }
+  .foto-seq__texto--m { font-weight: var(--weight-medium); }
+  .foto-seq__texto {
+    width: 100%;
+    margin: 0;
+    font-size: clamp(14px, 9.6vw, 140px); /* o script ajusta ao maior tamanho que cabe no quadro (mesma tipografia do título "trabalho com") */
+    font-weight: var(--weight-semibold);
+    line-height: 0.9;
+  }
+  @media (max-width: 767px) {
+    .foto-seq {
+      --mx: calc(var(--u) * var(--space-nav-edge-mobile));
+      --my: 72px;
+      height: auto;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-rows: none;
+      grid-auto-rows: 38vw;
+      gap: 12px;
+      padding-bottom: 40px;
+    }
+    .foto-seq__txt--topo, .foto-seq__txt--base { grid-column: 1 / -1; grid-row: auto; min-height: 0; order: 0; }
+    .foto-seq__txt { grid-column: 1 / -1; grid-row: auto; order: -1; min-height: 60vw; }
+    .foto-seq__fig--a { grid-column: 1 / 3; grid-row: auto / span 2; margin: 0 0 0 calc(var(--mx) * -1); }
+    .foto-seq__fig--b { grid-column: 3 / 5; grid-row: auto / span 2; }
+    .foto-seq__fig--c { grid-column: 1 / 3; grid-row: auto / span 2; }
+    .foto-seq__fig--d { grid-column: 3 / 5; grid-row: auto / span 2; }
+  }
+  /* ---------- contatos fixos (esfera/galeria): alinhados ao texto de cima, azul em difference ---------- */
+  .contato-esf {
+    position: fixed;
+    z-index: var(--z-fixed);
+    left: calc(var(--u) * var(--space-nav-edge));
+    bottom: 24px;
+    color: var(--color-light-blue);
+    mix-blend-mode: difference;
+    transition: opacity var(--duration-modal) var(--ease-soft);
+  }
+  @media (max-width: 767px) {
+    .contato-esf { left: calc(var(--u) * var(--space-nav-edge-mobile)); }
+  }
+  .dica-scroll {
+    position: fixed;
+    z-index: var(--z-fixed);
+    right: calc(var(--u) * var(--space-nav-edge));
+    bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    color: var(--color-light-blue);
+    mix-blend-mode: difference;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: var(--weight-medium);
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    pointer-events: none;
+    transition: opacity var(--duration-modal) var(--ease-soft);
+  }
+  @media (max-width: 767px) {
+    .dica-scroll { right: calc(var(--u) * var(--space-nav-edge-mobile)); }
+  }
+  body.is-intro .dica-scroll,
+  body.is-estrela .dica-scroll,
+  body.is-intro .contato-esf,
+  body.is-estrela .contato-esf {
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* ---------- rodapé: offwhite, Juju vermelha, contatos no canto inferior direito ---------- */
+  .rod-seq {
+    --mx: calc(var(--u) * var(--space-nav-edge));
+    position: relative;
+    width: 100%;
+    height: max(100vh, 560px);
+    background: var(--rod-bg, var(--color-off-white));
+    color: var(--rod-fg, var(--color-red));
+    font-family: var(--font-body);
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    overflow: hidden;
+    pointer-events: auto;
+  }
+  .rod-seq { z-index: 1; }
+  .rod-seq .grao { --op-e: 0.28; }
+  .rod-seq__tit {
+    z-index: 1;
+    position: absolute;
+    left: var(--mx);
+    top: calc(var(--h-nav-atual) + 4px);
+    margin: 0;
+    font-size: calc(clamp(44px, 9.6vw, 170px) * 0.56);
+    font-weight: var(--weight-semibold);
+  }
+  .rod-seq__juju {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 0;
+    width: clamp(276px, 46vw, 690px); /* mesmo tamanho da Juju da tela de abertura */
+    height: auto;
+    transform: translate(-50%, -50%);
+  }
+  /* contatos espalhados em volta da Juju: Instagram à esquerda, Linkedin à direita, o email embaixo */
+  .rod-seq__credito { position: absolute; right: 10px; bottom: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 0.4em; color: var(--color-black); font-size: clamp(11px, 0.95vw, 14px); font-weight: var(--weight-medium); text-transform: uppercase; }
+  .rod-seq__credito:hover { opacity: 1; }
+  .rod-seq__credito span { position: relative; }
+  .rod-seq__credito span::after { content: ''; position: absolute; left: 0; right: 0; bottom: -0.1em; height: max(1px, 0.07em); background: currentColor; transform: scaleX(0); transform-origin: left center; transition: transform 0.35s var(--ease-soft); }
+  .rod-seq__credito:hover span::after { transform: scaleX(1); }
+  .rod-seq__contato { position: absolute; inset: 0; z-index: 1; pointer-events: none; font-size: calc(clamp(44px, 9.6vw, 170px) * 0.21); line-height: 0.9; }
+  .rod-seq__contato .contato-links__linha:first-child { display: contents; }
+  .rod-seq__contato .contato-links__ponto { display: none; }
+  .rod-seq__contato a,
+  .rod-seq__contato .contato-links__linha:last-child { position: absolute; margin: 0; transform: translate(-50%, -50%); white-space: nowrap; pointer-events: auto; }
+  .rod-seq__contato a:nth-of-type(1) { left: calc(25% + 3px); top: calc(47% + 7px); }
+  .rod-seq__contato a:nth-of-type(2) { left: 75%; top: 43%; }
+  .rod-seq__contato .contato-links__linha:last-child { left: 50%; top: calc(74% + 80px); }
+  /* contatos como bullets inclinados, iguais aos da seção de rotação (mesmo tamanho e peso) */
+  .rod-seq__contato { font-size: clamp(11px, 0.95vw, 14px); }
+  .rod-seq__contato .contato-links__a { display: inline-flex; align-items: center; gap: 0.5em; padding: 0.55em 1em 0.5em; border: 1px solid currentColor; border-radius: 999px; font-weight: var(--weight-bold); text-transform: uppercase; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)); transition: transform var(--duration-fast) var(--ease-soft); }
+  .rod-seq__contato .contato-links__a::after { display: none; }
+  .rod-seq__contato .contato-links__a:hover { transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) translateY(-2px) scale(1.04); }
+  .rod-seq__contato .contato-links__a svg { flex: none; width: 1em; height: 1em; }
+  .rod-seq__contato .contato-links__linha:last-child { transform: translate(-50%, -50%); }
+  .rod-seq__contato .contato-links__linha:last-child .contato-links__a { position: static; transform: rotate(var(--rot, 0deg)); }
+  .rod-seq__contato .contato-links__linha:last-child .contato-links__a:hover { transform: rotate(var(--rot, 0deg)) translateY(-2px) scale(1.04); }
+  @media (max-width: 767px) {
+    .rod-seq { --mx: calc(var(--u) * var(--space-nav-edge-mobile)); }
+  }
+  /* ---------- seção dos projetos: fundo vermelho, texto azul ---------- */
+  .proj-seq {
+    --mx: calc(var(--u) * var(--space-nav-edge));
+    --t-mini: clamp(14px, 1.5vw, 22px); /* o "trabalho com" e o texto pequeno da seção de grids */
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    padding: calc(var(--h-nav-atual) + 4px + 2.4 * var(--t-mini)) var(--mx) 72px;
+    background: var(--color-off-white); /* fixo: não acompanha a cor da seção anterior */
+    color: var(--color-black);
+    font-family: var(--font-body);
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    pointer-events: auto;
+  }
+  .proj {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: 24px;
+    align-items: end; /* textos alinhados à base da imagem */
+    padding-bottom: 72px;
+  }
+  .proj + .proj { padding-top: 24px; }
+  .proj__txt { position: relative; grid-column: 1 / 6; align-self: end; }
+  .proj__titulo {
+    margin: 0;
+    color: var(--color-red);
+    font-size: var(--tam-titulo, clamp(28px, 3vw, 44px)); /* igual ao texto principal da seção de grids (definido por script) */
+    font-weight: var(--weight-semibold);
+  }
+  .proj__legenda {
+    margin: 14px 0 18px;
+    font-size: calc(var(--t-mini) - 2px);
+    font-weight: var(--weight-medium);
+  }
+  .proj__desc { font-size: var(--t-mini); font-weight: var(--weight-medium); line-height: 0.95; }
+  .proj__desc, .proj__desc p { font-weight: var(--weight-medium); }
+  .proj__desc p { margin: 0 0 12px; }
+  .proj__behance { display: inline-flex; align-items: center; gap: 0.25em; margin-top: 6px; font-size: 12px; font-weight: var(--weight-medium); color: var(--color-black); }
+  .proj__behance:hover { opacity: 1; }
+  .proj__behance span { position: relative; }
+  .proj__behance span::after { content: ''; position: absolute; left: 0; right: 0; bottom: -0.1em; height: max(1px, 0.05em); background: currentColor; transform: scaleX(0); transform-origin: left center; transition: transform 0.35s var(--ease-soft); }
+  .proj__behance:hover span::after { transform: scaleX(1); }
+  .proj__img { display: block; position: relative; overflow: hidden; grid-column: 7 / 13; aspect-ratio: 425 / 237; background: color-mix(in srgb, var(--color-light-blue) 10%, transparent); }
+  .proj__img img { width: 100%; height: 100%; object-fit: cover; }
+  .proj__img:has(.proj__pend) { border: 1px solid currentColor; } /* placeholder de capa: stroke fina */
+  .proj__pend { display: grid; place-content: center; height: 100%; text-align: center; font-weight: var(--weight-medium); }
+  .proj__pend small { font-size: 0.55em; opacity: 0.7; }
+  @media (max-width: 767px) {
+    .proj-seq { --mx: calc(var(--u) * var(--space-nav-edge-mobile)); }
+    .proj__txt, .proj__img { grid-column: 1 / -1; }
+    .proj__img { margin-top: 24px; }
+  }
+  .sobre-seq {
+    --edge: var(--space-nav-edge);
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    padding: var(--h-nav-atual) calc(var(--u) * var(--edge));
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* bloco de texto centralizado na vertical, alinhado à esquerda (margem do logo) */
+    --fundo-vivo: var(--color-off-white); /* ao entrar é offwhite; a cor da vez surge aos poucos com a seção à vista */
+    --fg-vivo: var(--color-red);
+    background: var(--fundo-vivo);
+    color: var(--fg-vivo);
+    /* fundo e texto: calculados a cada quadro em experiencia.ts (paleta da palavra da vez + rolagem) */
+    pointer-events: auto;
+    font-family: var(--font-body);
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+  }
+  .sobre-seq .grao {
+    --op-e: 0.28;
+    --op-c: 0;
+  }
+  .sobre-seq.is-pronta[data-fundo='claro'] .grao {
+    --op-e: 0;
+    --op-c: 0.28;
+  }
+  .hero {
+    position: relative; /* acima do grão */
+    text-align: left;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .pilulas {
+    margin-top: 42px !important; /* 42px abaixo do texto que rotaciona */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  /* cada bullet tem um fundo da cor da seção (bloqueia o cavalo atrás); borda e texto ficam em difference sobre esse fundo */
+  .pilula {
+    position: relative;
+    display: inline-flex;
+    padding: 0.55em 1em 0.5em;
+    border-radius: 999px;
+    background: var(--fundo-vivo);
+    font-size: clamp(11px, 0.95vw, 14px);
+    font-weight: var(--weight-bold);
+    text-transform: uppercase;
+    transform: rotate(var(--rot)); /* leve giro fixo, como colado à mão */
+    transition: transform var(--duration-fast) var(--ease-soft);
+  }
+  .pilula::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--color-off-white);
+    border-radius: inherit;
+    mix-blend-mode: difference;
+    pointer-events: none;
+  }
+  .pilula span {
+    position: relative;
+    color: var(--color-off-white);
+    mix-blend-mode: difference;
+  }
+  .pilula:hover {
+    transform: rotate(var(--rot)) translateY(-2px) scale(1.04);
+  }
+  /* "aberta a freelas": preenchida com o inverso do fundo; o texto recorta na cor do fundo */
+  .pilula--destaque::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--color-off-white);
+    mix-blend-mode: difference;
+  }
+  .pilula--destaque span {
+    mix-blend-mode: normal;
+    color: var(--fundo-vivo);
+  }
+  .hero__trabalho {
+    margin: clamp(20px, 2.4vw, 36px) 0 0;
+    font-size: clamp(14px, 1.5vw, 22px);
+    font-weight: var(--weight-medium);
+  }
+  /* palavra em rotação: os 4 itens empilhados na mesma célula reservam a largura do maior e a altura da linha (2 linhas se quebrar) */
+  .rotativa {
+    margin-top: 6px;
+    font-size: 9.6vw; /* o maior possível: "Identidade Visual" ocupa quase toda a largura útil */
+    font-weight: var(--weight-semibold);
+    line-height: 0.95;
+    outline-offset: 6px;
+  }
+  .rotativa__itens {
+    display: grid;
+  }
+  .rotativa__item {
+    grid-area: 1 / 1;
+    opacity: 0;
+    transform: translateY(0.3em);
+    transition:
+      opacity 0.35s var(--ease-soft),
+      transform 0.35s var(--ease-soft);
+  }
+  .rotativa__item.is-ativa {
+    opacity: 1;
+    transform: none;
+  }
+  .rotativa__item.is-saindo {
+    transform: translateY(-0.3em);
+  }
+  @media (max-width: 767px) {
+    .sobre-seq {
+      --edge: var(--space-nav-edge-mobile);
+      padding-bottom: 48px;
+    }
+    .rotativa {
+      font-size: 15vw;
+    }
+    .pilulas {
+      margin-top: 42px !important;
+    }
+  }
+  /* Text Appear: letras entram em sequência (translateY + opacidade + blur); a pressão (peso) é feita em scripts/tipografia.ts */
+  .tx .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .tx { word-spacing: 0.12em; } /* o tracking negativo comia o espaço entre as palavras */
+  .tx .palavra {
+    display: inline-block;
+    white-space: nowrap;
+  }
+  /* durante a medição das letras (tipografia.ts) elas ficam sem transform/transição */
+  .tx-medindo .tx .letra {
+    transform: none !important;
+    transition: none !important;
+    filter: none !important;
+  }
+  .tx .letra {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(0.45em);
+    filter: blur(6px);
+    transition:
+      opacity 0.25s var(--ease-soft),
+      transform 0.25s var(--ease-soft),
+      filter 0.25s var(--ease-soft);
+  }
+  .tx.is-visivel .letra {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition:
+      opacity 0.8s var(--ease-soft) calc(var(--i) * var(--passo) + var(--atraso, 0ms)),
+      transform 0.9s var(--ease-soft) calc(var(--i) * var(--passo) + var(--atraso, 0ms)),
+      filter 0.8s var(--ease-soft) calc(var(--i) * var(--passo) + var(--atraso, 0ms));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tx .letra,
+    .tx.is-visivel .letra {
+      opacity: 1;
+      transform: none;
+      filter: none;
+      transition: none;
+    }
+  }
+  /* versos nos cantos, alinhados pela navbar: esquerda = logo, direita = "sobre" */
+  .verso {
+    --logo-w: var(--w-nav-logo);
+    position: absolute;
+    margin: 0;
+    max-width: 9.5em;
+    font-family: var(--font-body);
+    font-weight: var(--weight-medium);
+    font-size: var(--t-base);
+    line-height: 0.9;
+    letter-spacing: -0.04em; /* tracking -40 */
+    color: var(--color-red);
+    opacity: var(--gif);
+  }
+  .verso--topo {
+    left: calc(var(--u) * var(--space-nav-edge));
+    /* 24px abaixo do logo (centrado na navbar; altura do logo = 0,7727 × largura) */
+    top: calc(var(--h-nav-atual) / 2 + var(--u) * var(--logo-w) * 0.7727 / 2 + 24px);
+    text-align: left;
+  }
+  .verso--base {
+    right: calc(var(--u) * var(--space-nav-edge));
+    bottom: calc(var(--u) * var(--space-nav-edge));
+    text-align: right;
+  }
+  @media (max-width: 767px) {
+    .verso {
+      --logo-w: var(--w-nav-logo-mobile);
+    }
+    .verso--topo {
+      left: calc(var(--u) * var(--space-nav-edge-mobile));
+    }
+    .verso--base {
+      right: calc(var(--u) * var(--space-nav-edge-mobile));
+      bottom: calc(var(--u) * var(--space-nav-edge-mobile));
+    }
+  }
+  /* Juju: centralizada no viewport 1 */
+  .juju {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 50%;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+  }
+  .juju__img {
+    grid-area: 1 / 1;
+    width: clamp(276px, 46vw, 690px); /* 15% maior que antes */
+    height: auto;
+  }
+  @media (max-width: 767px) {
+    .juju__img {
+      width: 85vw;
+    }
+  }
+  /* o link do card expandido precisa contrastar com o fundo vermelho da esfera */
+  body:has([data-esfera]) {
+    --color-modal-link: var(--color-off-white);
+  }
+  /* navbar: some durante a abertura e entra de leve na esfera */
+  .nav {
+    transition:
+      opacity var(--duration-modal) var(--ease-soft),
+      transform var(--duration-modal) var(--ease-soft);
+  }
+  body.is-intro .nav {
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+  }
+  /* topo à direita: toggle + microinfo, com a mesma altura; o conjunto termina na margem do "sobre" */
+  .topo-dir {
+    position: fixed;
+    z-index: var(--z-fixed);
+    top: calc(var(--h-nav-atual) + 4px);
+    right: calc(var(--u) * var(--space-nav-edge));
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: opacity var(--duration-modal) var(--ease-soft);
+  }
+  @media (max-width: 767px) {
+    .topo-dir {
+      right: calc(var(--u) * var(--space-nav-edge-mobile));
+    }
+  }
+  body.is-intro .topo-dir,
+  body.is-estrela .topo-dir {
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* toggle só de ícones, sem fundo, traço offwhite, em difference */
+  .visao {
+    --h-toggle: calc(12px * 0.9 * 2 * 1.27 * 1.2); /* altura do bloco de texto (2 linhas de 12px, entrelinha 0,9) + 27% + 20% */
+    display: inline-flex;
+    flex: none;
+    box-sizing: border-box;
+    height: var(--h-toggle);
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--color-off-white);
+    border-radius: 999px;
+    mix-blend-mode: difference;
+  }
+  .visao button {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: calc(var(--h-toggle) - 6px); /* 2px de padding + 1px de borda de cada lado */
+    height: calc(var(--h-toggle) - 6px);
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    background: none;
+    color: var(--color-off-white);
+    opacity: 0.55;
+    transition:
+      opacity var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard);
+  }
+  .visao button svg {
+    width: 60%;
+    height: 60%;
+  }
+  .visao button:hover {
+    opacity: 0.85;
+  }
+  .visao button[aria-checked='true'] {
+    opacity: 1;
+    border-color: var(--color-off-white);
+  }
+  .visao button:focus-visible {
+    outline: 1px solid var(--color-off-white);
+    outline-offset: 2px;
+  }
+  /* seta dupla: leva direto para a esfera */
+  .pular {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: var(--z-fixed);
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-red);
+    transition: opacity var(--duration-base) var(--ease-soft);
+  }
+  .pular:hover {
+    opacity: var(--opacity-hover);
+  }
+  body:not(.is-intro) .pular {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .micro,
+  .info {
+    position: fixed;
+    z-index: var(--z-fixed);
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: var(--weight-medium);
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    color: var(--color-off-white);
+    transition: opacity var(--duration-modal) var(--ease-soft);
+  }
+  .micro {
+    font-size: 14px; /* +2px */
+    top: calc(var(--h-nav-atual) + 4px);
+    pointer-events: none;
+  }
+  .micro--esq {
+    left: calc(var(--u) * var(--space-nav-edge));
+  }
+  .topo-dir .micro {
+    position: static;
+    text-align: right;
+    align-self: center;
+  }
+  .info {
+    left: calc(var(--u) * var(--space-nav-edge)); /* título: alinhado ao logo */
+    right: calc(var(--u) * var(--space-nav-edge)); /* descrição e link: alinhados ao "sobre" */
+    top: 50%; /* altura do centro do viewport, onde fica o mouse ao pairar */
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    font-size: 16px;
+    mix-blend-mode: difference; /* sempre em contraste com o que passa por baixo */
+    opacity: 0;
+    pointer-events: none;
+  }
+  .info.is-visivel {
+    opacity: 1;
+  }
+  /* na galeria: mesma posição, mas com um quadro vermelho de 2px abraçando cada texto */
+  .info.info--gal {
+    mix-blend-mode: normal;
+    color: var(--color-red);
+  }
+  .info.info--gal .tx { word-spacing: 0; }
+  .info.info--gal .info__titulo,
+  .info.info--gal .info__lado > span:not(:empty),
+  .info.info--gal .info__lado > a:not([hidden]) {
+    background: var(--color-light-blue);
+    padding: 2px;
+    width: fit-content;
+    height: fit-content;
+    max-width: max-content;
+  }
+  /* com o card aberto, o texto permanece e fica acima do modal */
+  html.is-modal-open .info {
+    z-index: calc(var(--z-modal) + 1);
+  }
+  .info.is-visivel .info__lado {
+    pointer-events: auto;
+  }
+  /* cada coluna usa só o espaço livre ao lado da esfera: o título quebra a linha antes de chegar nela */
+  .info__titulo,
+  .info__lado {
+    max-width: max(150px, calc((100vw - var(--esfera-d, 60vw)) / 2 - var(--u) * var(--space-nav-edge) - 24px));
+    text-wrap: balance;
+  }
+  .info__lado {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .info__titulo {
+    font-size: 18px;
+    font-weight: var(--weight-bold);
+    text-align: left;
+  }
+  .info__lado {
+    display: flex;
+    gap: 16px;
+    text-align: right;
+    font-weight: var(--weight-medium);
+  }
+  .info__lado a {
+    position: relative;
+    display: inline-block;
+    text-decoration: none;
+  }
+  /* sublinhado contínuo: o text-decoration quebra em pontos nas letras individuais do Text Appear */
+  .info__lado a::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.1em;
+    height: max(1px, 0.06em);
+    background: currentColor;
+  }
+  .info__lado a[hidden] {
+    display: none;
+  }
+  @media (max-width: 767px) {
+    .micro--esq,
+    .info {
+      left: calc(var(--u) * var(--space-nav-edge-mobile));
+    }
+    .info {
+      right: calc(var(--u) * var(--space-nav-edge-mobile));
+    }
+  }
+  body.is-intro .micro--esq,
+  body.is-estrela .micro--esq,
+  body.is-intro .info,
+  body.is-estrela .info {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .esfera__linhas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1px;
+    height: 1px;
+    overflow: visible;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .esfera__linhas path {
+    fill: none;
+    stroke: var(--color-off-white);
+    stroke-width: 0.8px;
+    vector-effect: non-scaling-stroke;
+  }
+  .esfera__tras {
+    stroke-opacity: 0.47; /* listras 10% menos aparentes */
+  }
+  .esfera__frente {
+    stroke-opacity: 0.9;
+  }
+  /* origem de fila e esfera: centro do viewport 2 */
+  .esfera-mira {
+    position: absolute;
+    left: 50%;
+    top: calc(75% + var(--h-nav-atual) / 2); /* centro da área visível sob a navbar */
+    width: 0;
+    height: 0;
+  }
+  .esfera {
+    position: absolute;
+    inset: 0;
+    transform-origin: 0 0;
+  }
+  .esfera .tile--solto {
+    transform-origin: 0 0; /* o script centraliza o card com translate(-50%, -50%) */
+    transition: none !important; /* opacity por quadro: sem suavização em CSS, que mostrava a visão anterior ao voltar da galeria */
+    pointer-events: none;
+  }
+  .esfera.is-pronta .tile--solto {
+    pointer-events: auto;
+  }
+  .esfera .tile--solto img {
+    display: block;
+  }
+</style>

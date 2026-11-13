@@ -1,0 +1,62 @@
+---
+import '../styles/global.css';
+import Nav from '../components/Nav.astro';
+import Cursor from '../components/Cursor.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** altura da página em u (desktop / mobile) */
+  height?: number;
+  mobileHeight?: number;
+  /** página de canvas infinito (galeria): sem rolagem nativa, o conteúdo é arrastado/rolado em X e Y */
+  canvas?: boolean;
+  /** abertura em andamento: a navbar fica oculta (a página tira a classe quando quiser mostrá-la) */
+  intro?: boolean;
+}
+const {
+  title = 'Júlia Pedó — designer visual',
+  description = 'Portfólio de Júlia Pedó, designer visual de Porto Alegre: posts para redes sociais, flyers, identidades visuais e capas de disco.',
+  height = 0, mobileHeight = 0, canvas = false, intro = false } = Astro.props;
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : undefined;
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#7f1616" />
+    {canonical && <link rel="canonical" href={canonical} />}
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {canonical && <meta property="og:url" content={canonical} />}
+    <!-- TODO: adicionar <meta property="og:image"> com uma imagem de compartilhamento (1200x630) quando houver -->
+    <meta name="twitter:card" content="summary" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="preload" href="/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/julia-regular.otf" as="font" type="font/otf" crossorigin />
+  </head>
+  <body class:list={{ 'is-canvas': canvas, 'is-intro': intro }}>
+    {!canvas && <div class="grao grao--fixo" style="--op-c: 0.28" aria-hidden="true"><i class="grao__c grao__c--claro" /></div>}
+    <Cursor />
+    <slot name="abertura" />
+    <Nav />
+    <main class:list={['page', { 'page--canvas': canvas }]} style={canvas ? undefined : `--page-h:${height}; --page-mh:${mobileHeight};`} data-anim="page">
+      <slot />
+    </main>
+  </body>
+</html>
+
+<style is:global>
+  @media (max-width: 767px) {
+    .page {
+      height: calc(var(--u) * var(--page-mh));
+    }
+  }
+</style>

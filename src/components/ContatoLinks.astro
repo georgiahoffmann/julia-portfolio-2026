@@ -1,0 +1,120 @@
+---
+// Links de contato: Instagram • Linkedin (linha de cima) e "Me mande um email!" (copia o email ao clicar)
+import { getEntry } from 'astro:content';
+import { ArrowUpRight } from '@lucide/astro';
+interface Props {
+  class?: string;
+  tx?: string;
+  pressao?: boolean;
+  pilulas?: boolean;
+}
+const { class: cls, tx = 'micro', pressao = true, pilulas = false } = Astro.props;
+const semPressao = pressao ? undefined : '';
+const s = (await getEntry('sobre', 'julia'))!.data;
+---
+
+<div class:list={['contato-links', pilulas && 'contato-links--pil', cls]}>
+  <p class="contato-links__linha">
+    <a class="contato-links__a" style="--rot:-3deg" href={`https://www.instagram.com/${s.instagram}/`} target="_blank" rel="noopener" data-tx={pilulas ? undefined : tx} data-sem-pressao={semPressao}>{pilulas ? <><span data-tx={tx} data-sem-pressao={semPressao}>Instagram</span><ArrowUpRight size={'1em'} strokeWidth={2.2} aria-hidden="true" /></> : 'Instagram'}</a>
+    <i class="contato-links__ponto" aria-hidden="true"></i>
+    <a class="contato-links__a" style="--rot:2.5deg;--atraso:80ms" href="https://www.linkedin.com/in/julia-ped%C3%B3/" target="_blank" rel="noopener" data-tx={pilulas ? undefined : tx} data-sem-pressao={semPressao} data-tx-atraso="80">{pilulas ? <><span data-tx={tx} data-sem-pressao={semPressao} data-tx-atraso="80" style="--atraso:80ms">Linkedin</span><ArrowUpRight size={'1em'} strokeWidth={2.2} aria-hidden="true" /></> : 'Linkedin'}</a>
+  </p>
+  <p class="contato-links__linha">
+    <button type="button" class="contato-links__a" style="--rot:-2deg" data-copiar={s.email} aria-label="Copiar o email"><span data-tx={tx} data-sem-pressao={semPressao} data-tx-atraso="160" style="--atraso:160ms">{pilulas ? 'email' : 'Me mande um email!'}</span>{pilulas && <ArrowUpRight size={'1em'} strokeWidth={2.2} aria-hidden="true" />}</button>
+  </p>
+</div>
+
+<style is:global>
+  .contato-links {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: var(--weight-medium);
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+  }
+  .contato-links__linha {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+  }
+  .contato-links__linha + .contato-links__linha {
+    margin-top: 5px;
+  }
+  .contato-links a,
+  .contato-links button {
+    color: inherit;
+    text-decoration: none;
+  }
+  /* sublinhado desenhado à parte: o text-decoration quebra nas letras individuais do Text Appear */
+  .contato-links a,
+  .contato-links button {
+    position: relative;
+    display: inline-block;
+  }
+  .contato-links a::after,
+  .contato-links button::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.1em;
+    height: max(1px, 0.05em);
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.35s var(--ease-soft);
+  }
+  .contato-links a:hover::after,
+  .contato-links button:hover::after {
+    transform: scaleX(1);
+  }
+  .contato-links a:hover,
+  .contato-links button:hover {
+    opacity: 1;
+  }
+  .contato-links button {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    letter-spacing: inherit;
+    cursor: var(--cursor-link);
+  }
+  .contato-links__ponto {
+    flex: none;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+</style>
+
+<script>
+  import { reescrever } from '../scripts/tipografia';
+  // copiar o email em vez de abrir o programa de email
+  for (const b of document.querySelectorAll<HTMLButtonElement>('[data-copiar]')) {
+    if (b.dataset.pronto) continue;
+    b.dataset.pronto = '1';
+    const rotulo = b.querySelector<HTMLElement>('[data-tx]');
+    const texto = rotulo?.textContent?.trim() || 'Me mande um email!';
+    const troca = (t: string) => (rotulo ? reescrever(rotulo, t) : (b.textContent = t));
+    let t = 0;
+    b.addEventListener('click', async () => {
+      const email = b.dataset.copiar ?? '';
+      try {
+        await navigator.clipboard.writeText(email);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = email;
+        document.body.append(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      troca('Email copiado!');
+      clearTimeout(t);
+      t = window.setTimeout(() => troca(texto), 1800);
+    });
+  }
+</script>

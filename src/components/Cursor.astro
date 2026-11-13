@@ -1,0 +1,48 @@
+---
+// Cursor customizado: estrela que segue o ponteiro (scripts/cursor.ts).
+---
+
+<div class="cursor" data-anim="cursor" aria-hidden="true">
+  <img class="cursor__star" src="/cursors/estrela.svg" alt="" />
+  <!-- no viewport offwhite (GIF) o cursor é outro, mesma caixa e também em difference -->
+  <img class="cursor__alt" src="/cursors/mouse-09-offwhite.svg" alt="" />
+</div>
+
+<script>
+  import '../scripts/cursor.ts';
+</script>
+
+<style>
+  .cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: var(--z-cursor);
+    width: var(--cursor-w);
+    height: var(--cursor-h);
+    pointer-events: none;
+    mix-blend-mode: difference; /* continua visível sobre o off white da galeria e sobre o preto */
+    opacity: 0;
+    transition: opacity var(--duration-base) var(--ease-soft);
+  }
+  .cursor.is-visible {
+    opacity: 1;
+  }
+  .cursor__alt {
+    display: none;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  :global(body.cursor-offwhite) .cursor__star {
+    display: none;
+  }
+  :global(body.cursor-offwhite) .cursor__alt {
+    display: block;
+  }
+  .cursor__star {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+</style>

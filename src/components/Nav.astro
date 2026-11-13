@@ -1,0 +1,118 @@
+---
+import { Image } from 'astro:assets';
+import logo from '../assets/jujuteste-offwhite.svg';
+
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+const links = [
+  { href: '/#galeria', label: 'galeria' },
+  { href: '/#sobre', label: 'sobre' },
+  { href: '/#projetos', label: 'projetos' },
+  { href: '/#contato', label: 'contato' },
+];
+---
+
+<header class="nav" data-anim="nav">
+  <a class="nav__logo" href="/" aria-label="Júlia Pedó — início" data-anim="nav-logo">
+    <Image src={logo} alt="Júlia Pedó" />
+  </a>
+  <nav aria-label="Principal">
+    {
+      links.map((l) => (
+        <a class="nav__link hand" href={l.href} aria-current={path === l.href ? 'page' : undefined} data-anim="nav-link">
+          {l.label}
+        </a>
+      ))
+    }
+  </nav>
+</header>
+
+<script>
+  // logo: leva à tela de carregamento (abertura completa). Já na home, recarrega a página.
+  document.querySelector<HTMLAnchorElement>('.nav__logo')?.addEventListener('click', (e) => {
+    if (location.pathname.replace(/\/$/, '') === '') {
+      e.preventDefault();
+      history.replaceState(null, '', '/');
+      location.reload();
+    }
+  });
+</script>
+
+<style>
+  .nav {
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: var(--h-nav);
+    z-index: var(--z-fixed);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-nav-gap);
+    padding-inline: calc(var(--u) * var(--space-nav-edge));
+  }
+  /* sem fundo nem divisor: logo e links em offwhite com mix-blend-mode: difference (como o cursor),
+     sempre em contraste com o que passa por baixo */
+  .nav {
+    mix-blend-mode: difference;
+  }
+  .nav nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-nav-gap);
+  }
+  .nav__link {
+    font-size: var(--fs-nav);
+    line-height: 1;
+    color: var(--color-off-white);
+    transition: opacity var(--duration-fast) var(--ease-standard);
+    white-space: nowrap;
+  }
+  /* seção atual: sublinhada (script da home marca .is-atual) */
+  .nav__link {
+    position: relative;
+  }
+  .nav__link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.05em;
+    height: 1.5px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.45s var(--ease-soft);
+  }
+  .nav__link.is-atual::after {
+    transform: scaleX(1);
+  }
+  .nav__link:hover {
+    opacity: var(--opacity-hover);
+  }
+  .nav__logo {
+    display: block;
+    width: calc(var(--u) * var(--w-nav-logo));
+  }
+  .nav__logo img {
+    width: 100%;
+    height: auto;
+  }
+  @media (max-width: 767px) {
+    /* no mobile o original não fixa o menu: ele rola junto com a página */
+    .nav {
+      position: absolute;
+      height: var(--h-nav-mobile);
+      gap: var(--space-nav-gap-mobile);
+      padding-inline: calc(var(--u) * var(--space-nav-edge-mobile));
+    }
+    .nav nav {
+      gap: var(--space-nav-gap-mobile);
+    }
+    .nav__link {
+      font-size: var(--fs-nav-mobile);
+    }
+    .nav__logo {
+      width: calc(var(--u) * var(--w-nav-logo-mobile));
+    }
+  }
+</style>
+

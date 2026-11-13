@@ -1,0 +1,13 @@
+/* Fontes self-hosted (arquivos em /public/fonts). Os tokens de família ficam em tokens.css. */
+@font-face {
+  font-family: 'Manrope';
+  src: url('/fonts/manrope-latin.woff2') format('woff2');
+  font-weight: 200 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Julia Regular';
+  src: url('/fonts/julia-regular.otf') format('opentype');
+  font-weight: 400;
+  font-display: swap;
+}

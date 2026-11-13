@@ -1,0 +1,39 @@
+---
+// Página 404: mesma identidade do site (off-white, vermelho, Manrope)
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Página não encontrada — Júlia Pedó" description="Esta página não existe.">
+  <section class="erro">
+    <h1 class="erro__titulo">Página não encontrada</h1>
+    <a class="erro__voltar" href="/">Voltar para o início</a>
+  </section>
+</Base>
+
+<style>
+  .erro {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 24px;
+    padding: 0 calc(var(--u) * var(--space-nav-edge));
+    background: var(--color-off-white);
+    color: var(--color-red);
+    font-family: var(--font-body);
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+  }
+  .erro__titulo {
+    margin: 0;
+    font-size: clamp(44px, 9.6vw, 170px);
+    font-weight: var(--weight-semibold);
+  }
+  .erro__voltar {
+    width: fit-content;
+    font-size: clamp(14px, 1.5vw, 22px);
+    font-weight: var(--weight-medium);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+</style>

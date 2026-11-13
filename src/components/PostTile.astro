@@ -1,0 +1,176 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  post: CollectionEntry<'posts'>;
+  /** desalinho vertical, de 0 a 1 (fração de --card-nudge) */
+  nudge: number;
+}
+const { post, nudge } = Astro.props;
+const { title, tipo, image, alt, link, funcao, video, desktop: d } = post.data;
+const ar = d.w / d.h;
+const style = `--ar:${ar};--nudge:${nudge};`;
+const isGif = image?.format === 'gif';
+const clicavel = tipo === 'imagem' && !!image;
+const modalId = `modal-${post.id}`;
+---
+
+{
+  clicavel ? (
+    <button
+      type="button"
+      class="tile tile--solto"
+      style={style}
+      data-ar={ar}
+      data-nudge={nudge}
+      data-anim="tile"
+      data-modal={modalId}
+      data-titulo={title}
+      data-funcao={funcao}
+      data-link={link}
+      aria-haspopup="dialog"
+      aria-label={`Abrir ${alt ?? title}`}
+    >
+      {isGif ? (
+        <img src={image.src} alt={alt ?? title} width={image.width} height={image.height} loading="lazy" draggable="false" />
+      ) : (
+        <Image src={image} alt={alt ?? title} widths={[300, 600, 900, 1400]} sizes="(max-width: 767px) 50vw, 30vw" loading="lazy" draggable="false" />
+      )}
+    </button>
+    <div class="modal" id={modalId} data-anim="modal" role="dialog" aria-modal="true" aria-label={title} aria-hidden="true">
+      <figure class="modal__figura" data-figura style={`--ar:${image.width / image.height}`}>
+        <div class="modal__midia" data-midia>
+          {video ? (
+            <video src={video} poster={image.src} controls playsinline preload="none" />
+          ) : isGif ? (
+            <img src={image.src} alt={alt ?? title} width={image.width} height={image.height} loading="lazy" draggable="false" />
+          ) : (
+            <Image src={image} alt={alt ?? title} widths={[600, 900, 1400, 2000]} sizes="(max-width: 767px) 100vw, 820px" loading="lazy" draggable="false" />
+          )}
+        </div>
+      </figure>
+    </div>
+  ) : (
+    <div
+      class="tile tile--solto tile--pendente"
+      style={style}
+      data-ar={ar}
+      data-nudge={nudge}
+      data-anim="tile"
+    >
+      <span class="tile__nome">{title}<small>{tipo === 'pendente-video' ? 'vídeo pendente' : 'arquivo pendente'}</small></span>
+    </div>
+  )
+}
+
+<script>
+  import '../scripts/modal.ts';
+</script>
+
+<style>
+  .tile {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+  }
+  /* tamanho: mesma altura para todos; scripts/experiencia.ts define a posição (transform) */
+  .tile--solto {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: calc(var(--card-h) * var(--ar));
+    height: var(--card-h);
+    transform-origin: 0 0; /* zoom do mundo (scripts/experiencia.ts) */
+    will-change: transform;
+  }
+  button.tile {
+    transition: opacity var(--duration-base) var(--ease-soft);
+  }
+  button.tile:hover {
+    opacity: var(--opacity-hover);
+  }
+  .tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    -webkit-user-drag: none;
+  }
+  .tile--pendente {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border: var(--border-dashed) rgb(13 12 12 / 35%);
+    color: var(--color-black);
+    padding: 8px;
+    font-size: 12px;
+    line-height: var(--lh-label);
+    overflow: hidden;
+  }
+  .tile__nome small {
+    display: block;
+    margin-top: 0.4em;
+    font-size: 0.7em;
+    opacity: var(--opacity-muted);
+  }
+
+  /* ---------- Expansão do card (sem painel nem bordas: só a mídia) ---------- */
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .modal.is-open {
+    visibility: visible;
+    pointer-events: auto;
+  }
+  .modal__figura {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-modal-gap); /* mídia → link */
+    width: fit-content;
+  }
+  .modal__midia {
+    transform-origin: 0 0;
+    transition: transform var(--duration-modal) var(--ease-expand);
+    will-change: transform;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .modal__midia :global(img),
+  .modal__midia video {
+    display: block;
+    width: min(calc(100vw - 48px), 820px, calc(70vh * var(--ar)));
+    height: auto;
+    aspect-ratio: var(--ar);
+    object-fit: contain;
+    -webkit-user-drag: none;
+  }
+  .modal__link {
+    opacity: 0;
+    transition: opacity var(--duration-modal) var(--ease-soft);
+    color: var(--color-modal-link, var(--color-red)); /* na home (fundo vermelho/amarelo) vira off white */
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .modal.is-open.is-shown .modal__link {
+    opacity: 1;
+  }
+  /* o card original some enquanto a cópia expandida está na tela */
+  button.tile.is-origem {
+    visibility: hidden;
+  }
+</style>
