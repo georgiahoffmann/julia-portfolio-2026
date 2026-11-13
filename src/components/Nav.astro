@@ -26,15 +26,85 @@ const links = [
   </nav>
 </header>
 
+<!-- camada de cor do hover (web): cópia da navbar sem difference; o link sob o mouse troca de difference para azul (fundo escuro)
+     ou vermelho (fundo claro). Só os links têm cor; o resto é invisível e não recebe cliques. -->
+<header class="nav nav--cor" aria-hidden="true" data-nav-cor>
+  <span class="nav__logo" aria-hidden="true" style={`--logo:url(${logo.src});aspect-ratio:${logo.width} / ${logo.height}`}></span>
+  <nav>
+    {links.map((l) => <a class="nav__link hand" href={l.href} tabindex="-1">{l.label}</a>)}
+  </nav>
+</header>
+
 <script>
   // logo: leva à tela de carregamento (abertura completa). Já na home, recarrega a página.
+  // No mobile, o clique também reabre o aviso "acesse pelo pc" (apaga a marca de "já visto").
   document.querySelector<HTMLAnchorElement>('.nav__logo')?.addEventListener('click', (e) => {
+    if (matchMedia('(max-width: 767px)').matches) {
+      try {
+        sessionStorage.removeItem('aviso-mobile');
+      } catch {
+        /* ok */
+      }
+    }
     if (location.pathname.replace(/\/$/, '') === '') {
       e.preventDefault();
       history.replaceState(null, '', '/');
       location.reload();
     }
   });
+
+  // hover (só mouse): o link e o logo trocam de difference para o azul claro do projeto em fundo escuro e vermelho em fundo claro
+  const cor = document.querySelector<HTMLElement>('[data-nav-cor]');
+  if (cor && matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    const reais = [...document.querySelectorAll<HTMLElement>('header.nav:not(.nav--cor) .nav__logo, header.nav:not(.nav--cor) .nav__link')];
+    const copias = [...cor.querySelectorAll<HTMLElement>('.nav__logo, .nav__link')];
+    // luminância relativa (WCAG) de uma cor sRGB
+    const lum = (r: number, g: number, b: number) => {
+      const f = (v: number) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    };
+    const L_AZUL = lum(190, 245, 252); // azul claro do projeto
+    const L_VERM = lum(127, 22, 22); // vermelho do projeto
+    // o fundo é "escuro" quando o azul claro contrasta mais com ele do que o vermelho (decide por contraste, não por um corte fixo)
+    const escuroPorLum = (L: number) => (L_AZUL + 0.05) / (L + 0.05) > (L + 0.05) / (L_VERM + 0.05);
+    // fundo sob o ponto: o primeiro elemento (de cima para baixo) com fundo opaco; imagens e canvas são ignorados
+    const escuro = (x: number, y: number) => {
+      for (const el of document.elementsFromPoint(x, y)) {
+        if (el.closest('.nav, .cursor, .cursor-rasto, .grao, .topo-dir, .contato-esf, .pular')) continue;
+        // o campo claro do GIF cobre o fundo vermelho da esfera sem receber o ponteiro: com ele ligado (cursor-offwhite),
+        // se o ponto não cai em nenhuma seção com fundo próprio, o que se vê é o campo claro
+        if (document.body.classList.contains('cursor-offwhite') && (el.classList.contains('page') || el === document.body || el === document.documentElement)) return false;
+        const m = getComputedStyle(el).backgroundColor.match(/[\d.]+/g);
+        if (!m || m.length < 3) continue;
+        const [r, g, b] = m.map(Number);
+        const a = m.length > 3 ? Number(m[3]) : 1;
+        if (a < 0.5) continue;
+        return escuroPorLum(lum(r, g, b));
+      }
+      return false;
+    };
+    reais.forEach((a, i) => {
+      const c = copias[i];
+      if (!c) return;
+      let t = 0;
+      const tom = () => {
+        const r = a.getBoundingClientRect();
+        c.dataset.tom = escuro(r.left + r.width / 2, r.top + r.height / 2) ? 'azul' : 'vermelho';
+      };
+      a.addEventListener('pointerenter', () => {
+        tom();
+        a.classList.add('is-hover');
+        c.classList.add('is-hover');
+        clearInterval(t);
+        t = window.setInterval(tom, 200); // a seção pode passar por baixo do mouse parado
+      });
+      a.addEventListener('pointerleave', () => {
+        clearInterval(t);
+        a.classList.remove('is-hover');
+        c.classList.remove('is-hover');
+      });
+    });
+  }
 </script>
 
 <style>
@@ -88,6 +158,45 @@ const links = [
   .nav__link:hover {
     opacity: var(--opacity-hover);
   }
+  /* camada de cor do hover (web): sem difference, acima da navbar; só o link sob o mouse aparece */
+  .nav--cor {
+    mix-blend-mode: normal;
+    pointer-events: none;
+  }
+  /* o logo (SVG) da cópia é uma máscara do mesmo SVG preenchida com a cor do hover */
+  .nav--cor .nav__logo {
+    display: block;
+    background: currentColor;
+    -webkit-mask: var(--logo) center / contain no-repeat;
+    mask: var(--logo) center / contain no-repeat;
+  }
+  .nav--cor .nav__logo,
+  .nav--cor .nav__link {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s var(--ease-soft);
+  }
+  .nav--cor .nav__logo.is-hover,
+  .nav--cor .nav__link.is-hover {
+    opacity: 1;
+  }
+  .nav--cor [data-tom='azul'] {
+    color: var(--color-light-blue); /* azul claro padrão do projeto */
+  }
+  .nav--cor [data-tom='vermelho'] {
+    color: var(--color-red);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    /* o link real sai enquanto a cópia colorida entra (troca suave de cor) */
+    .nav:not(.nav--cor) .nav__link,
+    .nav:not(.nav--cor) .nav__logo {
+      transition: opacity 0.3s var(--ease-soft);
+    }
+    .nav:not(.nav--cor) .nav__link.is-hover,
+    .nav:not(.nav--cor) .nav__logo.is-hover {
+      opacity: 0;
+    }
+  }
   .nav__logo {
     display: block;
     width: calc(var(--u) * var(--w-nav-logo));
@@ -97,21 +206,33 @@ const links = [
     height: auto;
   }
   @media (max-width: 767px) {
-    /* no mobile o original não fixa o menu: ele rola junto com a página */
+    .nav--cor {
+      display: none;
+    }
+    /* mobile: logo + os quatro atalhos sempre visíveis na mesma linha. Tudo em vw: as palavras (fonte de display, ~11,9 em no total)
+       sempre cabem, de 320 a 767px; a largura do logo é fixa (flex: none) para ele nunca ser espremido. */
     .nav {
       position: absolute;
       height: var(--h-nav-mobile);
-      gap: var(--space-nav-gap-mobile);
+      gap: 3vw;
       padding-inline: calc(var(--u) * var(--space-nav-edge-mobile));
     }
+    .nav__logo {
+      flex: none;
+      width: calc(var(--u) * var(--w-nav-logo-mobile));
+    }
     .nav nav {
-      gap: var(--space-nav-gap-mobile);
+      flex: 0 1 auto;
+      min-width: 0;
+      gap: 3.4vw;
     }
     .nav__link {
-      font-size: var(--fs-nav-mobile);
+      font-size: min(4.7vw, 30px);
+      /* área de toque maior sem mudar o visual */
+      padding-block: 12px;
     }
-    .nav__logo {
-      width: calc(var(--u) * var(--w-nav-logo-mobile));
+    .nav__link::after {
+      bottom: 11px; /* o sublinhado acompanha o texto, não o padding */
     }
   }
 </style>

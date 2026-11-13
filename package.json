@@ -8,7 +8,10 @@
     "node": ">=22.23.4"
   },
   "scripts": {
+    "posters": "node scripts/posters.mjs",
+    "predev": "npm run posters",
     "dev": "astro dev",
+    "prebuild": "npm run posters",
     "build": "astro build",
     "preview": "astro preview"
   },

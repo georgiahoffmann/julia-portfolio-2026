@@ -8,7 +8,10 @@
 }
 
 html {
+  margin: 0;
+  min-height: 100%;
   background: var(--color-bg);
+  transition: background-color 0.4s var(--ease-soft); /* a cor sob as barras do Safari acompanha o fundo (scripts/experiencia.ts, setBg) */
 }
 
 body {
@@ -77,6 +80,7 @@ html:has(body.is-canvas),
 body.is-canvas {
   background: var(--color-galeria-bg);
   height: 100%;
+  min-height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
 }

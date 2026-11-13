@@ -29,7 +29,7 @@ npm run preview   # serve o resultado do build
 - `src/styles/` — tokens de design, fontes e estilos globais
 - `src/content/` — textos e dados: `posts/`, `projetos/` e `sobre/`
 - `src/assets/` — imagens processadas pelo Astro (posts, projetos, seção sobre, Juju)
-- `public/` — arquivos servidos como estão: fontes, cursores, sprite do cavalo, vídeo do carrossel, favicon, miniatura de compartilhamento (`miniatura.jpg`, 1200×630) e `robots.txt`
+- `public/` — arquivos servidos como estão: fontes, cursores, sprite do cavalo, favicon, miniatura de compartilhamento (`miniatura.jpg`, 1200×630) e `robots.txt`
 
 ## Editar o conteúdo
 

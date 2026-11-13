@@ -3,7 +3,7 @@ titulo: Guia do Calouro
 subtitulo: Design de Experiências
 link: https://www.behance.net/gallery/239870721/Guia-do-Calouro-Design-de-Experiencia
 chamada: Clique aqui para ter acesso ao projeto completo
-ordem: 2
+ordem: 3
 desktop:
   texto: { x: 277, y: 432, w: 261, h: 162 }
   imagem: { x: 565, y: 356.4, w: 425, h: 238.1 }

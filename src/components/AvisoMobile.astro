@@ -1,0 +1,131 @@
+---
+// Tela antes do carregamento, só no mobile: avisa que a experiência é melhor no computador.
+// Fundo offwhite com o grão padrão, frase centralizada e o ícone Lucide de notebook embaixo.
+// Some ao toque ou depois de alguns segundos; a abertura do site só começa depois (body.is-aviso pausa o relógio da abertura).
+import { Laptop } from '@lucide/astro';
+---
+
+<div class="aviso" data-aviso role="status" aria-live="polite">
+  <div class="grao"><i class="grao__c grao__c--escuro" style="--op-e: 0.28"></i></div>
+  <div class="aviso__icones" aria-hidden="true">
+    <Laptop size={32} strokeWidth={1.8} />
+  </div>
+  <p class="aviso__txt">Para aproveitar ao máximo a experiência, considere acessar esse site pelo pc</p>
+  <button type="button" class="aviso__ignorar" data-aviso-ignorar>Ignorar nas próximas vezes</button>
+</div>
+
+<script>
+  const aviso = document.querySelector<HTMLElement>('[data-aviso]');
+  const mobile = matchMedia('(max-width: 767px)').matches;
+  let visto = false;
+  try {
+    visto = localStorage.getItem('aviso-mobile-ignorar') === '1'; // "ignorar nas próximas vezes": nunca mais neste aparelho
+    visto ||= sessionStorage.getItem('aviso-mobile') === '1'; // uma vez por visita (o clique no logo apaga a marca e mostra o aviso de novo)
+  } catch {
+    /* sem armazenamento: mostra sempre */
+  }
+  if (aviso && mobile && !visto) {
+    document.body.classList.add('is-aviso');
+    let fechado = false;
+    const fechar = () => {
+      if (fechado) return;
+      fechado = true;
+      try {
+        sessionStorage.setItem('aviso-mobile', '1');
+      } catch {
+        /* ok */
+      }
+      aviso.classList.add('is-saindo');
+      document.body.classList.remove('is-aviso'); // a abertura começa agora
+      setTimeout(() => aviso.remove(), 700);
+    };
+    aviso.addEventListener('pointerup', fechar);
+    aviso.querySelector('[data-aviso-ignorar]')?.addEventListener('pointerup', () => {
+      try {
+        localStorage.setItem('aviso-mobile-ignorar', '1');
+      } catch {
+        /* ok */
+      }
+      dispatchEvent(new Event('aviso-ignorado')); // pula a abertura: vai direto para a galeria
+    }); // o toque também fecha (evento sobe até o aviso)
+    setTimeout(fechar, 4500);
+  } else {
+    aviso?.remove();
+  }
+</script>
+
+<style>
+  .aviso {
+    display: none;
+  }
+  @media (max-width: 767px) {
+    .aviso {
+      position: fixed;
+      inset: 0;
+      z-index: 300; /* acima de tudo, inclusive da navbar */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 0 32px;
+      background: var(--color-off-white);
+      color: var(--color-red);
+      text-align: center;
+      cursor: pointer;
+      transition: opacity 0.6s var(--ease-soft);
+    }
+    .aviso.is-saindo {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .aviso__txt {
+      position: relative; /* acima do grão */
+      max-width: 15em;
+      margin: 0;
+      font-family: var(--font-body);
+      font-size: 20px;
+      font-weight: var(--weight-medium);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      animation: aviso-entra 0.9s var(--ease-soft) both;
+    }
+    .aviso__icones {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      animation: aviso-entra 0.9s 0.15s var(--ease-soft) both;
+    }
+    .aviso__ignorar {
+      position: absolute;
+      right: 20px;
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      z-index: 1;
+      padding: 8px 0 8px 8px;
+      border: 0;
+      background: none;
+      color: inherit;
+      font: inherit;
+      font-size: 13px;
+      font-weight: var(--weight-medium);
+      letter-spacing: -0.02em;
+      text-decoration: underline;
+      text-underline-offset: 0.2em;
+      cursor: pointer;
+    }
+    @keyframes aviso-entra {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+  }
+  :global(body.is-aviso) {
+    overflow: hidden;
+  }
+</style>

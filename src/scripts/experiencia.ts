@@ -33,6 +33,7 @@ const navLinks = [...document.querySelectorAll<HTMLAnchorElement>('.nav__link[hr
 let navSecao = '';
 // posições em cache (em relação ao mundo, sem a translação): evita getBoundingClientRect/getComputedStyle a cada quadro
 let tyAtual = 0;
+let SUPER = 1; // fator de super-resolução dos cards (ver layout da esfera)
 let dprPx = Math.max(1, window.devicePixelRatio || 1); // a rolagem cai em pixels físicos: sem emendas de meio pixel entre as seções
 const medidas = new Map<HTMLElement, { base: number; w: number; h: number }>();
 const medirMovel = () => {
@@ -70,7 +71,7 @@ function ajustarTextoFoto() {
   liberarLarguras();
   const t = caber(fotoTxt, 140);
   if (fotoTxtM) caber(fotoTxtM, t);
-  document.documentElement.style.setProperty('--tam-titulo', `${t}px`);
+  // --tam-titulo (títulos das seções) agora vem do CSS, igual ao texto principal do /teste-grid
   // os textos principais da seção ficam 2px menores que o máximo que cabe
   fotoTxt.style.fontSize = `${t - 2}px`;
   if (fotoTxtM) fotoTxtM.style.fontSize = `${parseFloat(fotoTxtM.style.fontSize) - 2}px`;
@@ -170,7 +171,40 @@ if (camera && esfera && jujuImg && area && linhas) {
   let galAtual = 0;
   let galMax = 0;
   let galPos: { x: number; y: number }[] = [];
+  let galSuave: { x: number; y: number }[] = []; // posição exibida (desliza até galPos quando a ordem muda)
+  let arrasto: { id: number; i: number; px: number; py: number; dx: number; dy: number } | null = null; // card arrastado no modo de edição
+  let relayoutGaleria: (snap: boolean) => void = () => {};
+  // ordem da galeria: índices dos cards (na ordem do DOM = ordem web) na sequência exibida. Web = ordem do DOM; mobile = `data-ordem-mobile`.
+  const idDe = (i: number) => tiles[i].dataset.postId!;
+  const ordemInicial = (modoOrdem: 'web' | 'mobile') =>
+    Array.from({ length: n }, (_, i) => i).sort((a, b) =>
+      modoOrdem === 'web' ? a - b : Number(tiles[a].dataset.ordemMobile) - Number(tiles[b].dataset.ordemMobile) || a - b,
+    );
+  const ordens = { web: ordemInicial('web'), mobile: ordemInicial('mobile') };
+  const iniciais = { web: [...ordens.web], mobile: [...ordens.mobile] };
+  const editando = new URLSearchParams(location.search).has('editar'); // /?editar: reordenar a galeria arrastando
+  let ordemModo: 'web' | 'mobile' = innerWidth < 768 ? 'mobile' : 'web';
+  let perm = ordens[ordemModo];
+  // rascunho do editor: a ordem em edição fica guardada no navegador, para não se perder se a página recarregar
+  const RASCUNHO_ORDEM = 'rascunho-ordem-galeria';
+  let mobileTocado = false;
+  if (editando) {
+    try {
+      const r = JSON.parse(localStorage.getItem(RASCUNHO_ORDEM) ?? 'null');
+      const ids = tiles.slice(0, n).map((_t, i) => idDe(i));
+      const paraIdx = (l: unknown) => (Array.isArray(l) ? l.map((id) => ids.indexOf(id)) : []);
+      for (const k of ['web', 'mobile'] as const) {
+        const l = paraIdx(r?.[k]);
+        if (l.length === n && new Set(l).size === n && !l.includes(-1)) ordens[k].splice(0, n, ...l);
+      }
+      mobileTocado = !!r?.mobileTocado;
+    } catch {
+      /* rascunho inválido: ignora */
+    }
+  }
   let sGaleria = 1;
+  let galMostra: boolean[] = []; // card aparece na lista da galeria (false: só web, post fora da lista)
+  let galEsc: number[] = []; // escala de cada card na galeria (no mobile cada linha tem a sua altura)
   let navAtual = 68;
   let secH = 0; // altura da seção da foto
   let sobreH = 0;
@@ -243,6 +277,10 @@ if (camera && esfera && jujuImg && area && linhas) {
 
   const montar = () => {
     vw = innerWidth;
+    if (!editando) {
+      ordemModo = innerWidth < 768 ? 'mobile' : 'web';
+      perm = ordens[ordemModo];
+    }
     vh = innerHeight;
     const nav = parseFloat(css.getPropertyValue('--h-nav-atual')) || 68;
     navAtual = nav;
@@ -260,7 +298,9 @@ if (camera && esfera && jujuImg && area && linhas) {
     const grande = anelar(m, arsO, gapE); // tamanho que os cards teriam sem as cópias
     const cfg = anelar(m * 2, arsN, gapE, grande.h * 0.5); // metade do tamanho
     hs = cfg.h;
-    esfera.style.setProperty('--card-h', `${hs}px`);
+    // nitidez: no mobile o card nasce SUPER vezes maior no layout e a matriz o reduz (o Chrome rasteriza `will-change: transform` no tamanho de layout: com 1x as capas ficavam borradas ao ampliar)
+    SUPER = vw < 768 ? 3 : 1;
+    esfera.style.setProperty('--card-h', `${hs * SUPER}px`);
 
     let idx = 0;
     cfg.cont.forEach((c, j) => {
@@ -355,43 +395,70 @@ if (camera && esfera && jujuImg && area && linhas) {
       };
     });
 
-    // ----- galeria: grade com rolagem vertical; mesma altura, linhas alinhadas, 32px entre os cards
-    const gapG = parseFloat(css.getPropertyValue('--card-gap')) || 32;
-    const hG = vw < 768 ? 170 : Math.min(260, Math.max(190, vw * 0.17));
-    sGaleria = hG / hs;
-    galPos = new Array(tiles.length);
-    // alinhamento: bordas esquerda/direita = margens da navbar (logo e "sobre"); linhas completas se justificam entre as duas
-    const margem = parseFloat(getComputedStyle(document.querySelector('.nav') ?? document.body).paddingLeft) || gapG;
-    const larg = vw - 2 * margem;
-    let linhaIni = 0;
-    let linhaW = 0;
-    const topoDir = document.querySelector<HTMLElement>('.topo-dir');
-    topoGal = Math.max(nav + gapG, (topoDir?.getBoundingClientRect().bottom ?? nav) + 12);
-    let y0 = topoGal;
-    const fecha = (fim: number, ultima: boolean) => {
-      const cnt = fim - linhaIni;
-      const sobra = larg - linhaW;
-      const gapL = gapG + (!ultima && cnt > 1 ? sobra / (cnt - 1) : 0);
-      let xx = margem;
-      for (let q = linhaIni; q < fim; q++) {
-        galPos[q] = { x: xx + (arsO[q] * hG) / 2, y: y0 + hG / 2 }; // centro do card
-        xx += arsO[q] * hG + gapL;
+    // ----- galeria: grade com rolagem vertical; mesma altura, linhas alinhadas, 32px entre os cards (`snap`: sem deslizar)
+    const layoutGaleria = (snap: boolean) => {
+      const movel = vw < 768;
+      // mobile: exatamente 24px entre os cards (horizontal e vertical); cada linha é escalada para preencher a largura
+      const gapG = movel ? 24 : parseFloat(css.getPropertyValue('--card-gap')) || 32;
+      const hG = movel ? 170 : Math.min(260, Math.max(190, vw * 0.17)); // no mobile: altura-base, só decide quantos cards cabem por linha
+      sGaleria = hG / hs;
+      galPos = new Array(tiles.length);
+      galEsc = new Array(n).fill(hG / hs);
+      galMostra = tiles.slice(0, n).map((t) => movel || t.dataset.semListaWeb === undefined);
+      let hAnt = 0;
+      // web: cards marcados com data-sem-lista-web não entram na lista (continuam na esfera e no mobile)
+      const foraDaLista = (i: number) => !movel && tiles[i].dataset.semListaWeb !== undefined;
+      const lista = perm.filter((i) => !foraDaLista(i));
+      const mm = lista.length;
+      const oq = (q: number) => lista[q]; // card que ocupa a posição q da lista (a ordem vem de `perm`)
+      // alinhamento: bordas esquerda/direita = margens da navbar (logo e "sobre"); linhas completas se justificam entre as duas
+      const margem = parseFloat(getComputedStyle(document.querySelector('.nav') ?? document.body).paddingLeft) || gapG;
+      const larg = vw - 2 * margem;
+      let linhaIni = 0;
+      let linhaW = 0;
+      const topoDir = document.querySelector<HTMLElement>('.topo-dir');
+      topoGal = Math.max(nav + gapG, (topoDir?.getBoundingClientRect().bottom ?? nav) + 12);
+      root.style.setProperty('--topo-gal', `${topoGal}px`);
+      let y0 = topoGal;
+      const fecha = (fim: number, ultima: boolean) => {
+        const cnt = fim - linhaIni;
+        const sobra = larg - linhaW;
+        let gapL = gapG + (!ultima && cnt > 1 ? sobra / (cnt - 1) : 0);
+        let hL = hG;
+        if (movel) {
+          gapL = gapG;
+          let somaAr = 0;
+          for (let q = linhaIni; q < fim; q++) somaAr += arsO[oq(q)];
+          hL = (larg - (cnt - 1) * gapG) / somaAr;
+          if (ultima && hAnt) hL = Math.min(hL, hAnt); // a última linha não estica além das outras
+          hAnt = hL;
+        }
+        let xx = margem;
+        for (let q = linhaIni; q < fim; q++) {
+          galPos[oq(q)] = { x: xx + (arsO[oq(q)] * hL) / 2, y: y0 + hL / 2 }; // centro do card
+          galEsc[oq(q)] = hL / hs;
+          xx += arsO[oq(q)] * hL + gapL;
+        }
+        y0 += hL + gapG;
+      };
+      for (let q = 0; q < mm; q++) {
+        const w = arsO[oq(q)] * hG;
+        const novo = linhaW === 0 ? w : linhaW + gapG + w;
+        if (novo > larg && q > linhaIni) {
+          fecha(q, false);
+          linhaIni = q;
+          linhaW = w;
+        } else linhaW = novo;
       }
-      y0 += hG + gapG;
+      fecha(mm, true);
+      for (let i = 0; i < m; i++) if (foraDaLista(i)) galPos[i] = galPos[lista[mm - 1]]; // fora da lista: sem posição própria (ficam ocultos)
+      for (let q = m; q < tiles.length; q++) galPos[q] = galPos[q - m]; // cópias seguem os originais (ficam ocultas)
+      galMax = Math.max(0, y0 - gapG - (vh - FOOT));
+      galAlvo = clamp(galAlvo, 0, galMax);
+      if (snap || galSuave.length !== tiles.length) galSuave = galPos.map((g) => ({ ...g })); // reordenar (editor) desliza; redimensionar não
     };
-    for (let q = 0; q < m; q++) {
-      const w = arsO[q] * hG;
-      const novo = linhaW === 0 ? w : linhaW + gapG + w;
-      if (novo > larg && q > linhaIni) {
-        fecha(q, false);
-        linhaIni = q;
-        linhaW = w;
-      } else linhaW = novo;
-    }
-    fecha(m, true);
-    for (let q = m; q < tiles.length; q++) galPos[q] = galPos[q - m]; // cópias seguem os originais (ficam ocultas)
-    galMax = Math.max(0, y0 - gapG - (vh - FOOT));
-    galAlvo = clamp(galAlvo, 0, galMax);
+    relayoutGaleria = layoutGaleria;
+    layoutGaleria(true);
     // alturas das seções em múltiplos de pixel físico: as divisas caem sempre em pixel inteiro (sem meio pixel de emenda com zoom 90%/110%/125%)
     const dp = Math.max(1, window.devicePixelRatio || 1);
     dprPx = dp;
@@ -475,7 +542,18 @@ if (camera && esfera && jujuImg && area && linhas) {
   area.addEventListener('pointerdown', (e) => {
     moveu = false;
     if (!pronta || modalAberto() || (e.pointerType === 'mouse' && e.button !== 0)) return;
-    if ((e.target as Element).closest('[data-midia], .modal__link, .visao, .pular, .contato-esf')) return;
+    if ((e.target as Element).closest('[data-midia], .modal__link, .modal__pontos, .visao, .pular, .contato-esf, .editor')) return;
+    if (editando && (e.target as Element).closest('[data-coisa]')) return; // editor das coisas do sobre
+    if (editando && modo === 'galeria' && mix > 0.9 && !arrasto) {
+      const t = (e.target as Element).closest<HTMLElement>('[data-ar]');
+      const i = t ? tiles.indexOf(t) : -1;
+      if (i >= 0 && i < n) {
+        const g = galSuave[i] ?? galPos[i];
+        arrasto = { id: e.pointerId, i, px: e.clientX, py: e.clientY, dx: g.x - e.clientX, dy: g.y - (e.clientY + galAtual) };
+        e.preventDefault();
+        return;
+      }
+    }
     ativos.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY });
     vry = 0;
     if (ativos.size === 2) {
@@ -485,6 +563,11 @@ if (camera && esfera && jujuImg && area && linhas) {
     }
   });
   addEventListener('pointermove', (e) => {
+    if (arrasto && e.pointerId === arrasto.id) {
+      arrasto.px = e.clientX;
+      arrasto.py = e.clientY;
+      return;
+    }
     const p = ativos.get(e.pointerId);
     if (!p) return;
     const dx = e.clientX - p.x;
@@ -503,6 +586,10 @@ if (camera && esfera && jujuImg && area && linhas) {
     if (!modalAberto()) rolarPor(-dy, vh * 0.8); // arrastar para cima = rolar
   });
   const soltar = (e: PointerEvent) => {
+    if (arrasto && e.pointerId === arrasto.id) {
+      arrasto = null; // o card desliza até a sua posição
+      if (editando) guardarOrdem();
+    }
     if (!ativos.delete(e.pointerId)) return;
     if (ativos.size < 2) pinca = null;
   };
@@ -596,7 +683,134 @@ if (camera && esfera && jujuImg && area && linhas) {
     linhasTras.setAttribute('d', tras);
   };
 
+  // ---------- modo de edição da galeria (/?editar) ----------
+  // Arrastar uma capa na galeria troca a posição dela na lista; a ordem Web e a Mobile são independentes.
+  // Salvar: no `npm run dev` grava nos arquivos de src/content/posts; fora dele, copia a ordem para colar no chat.
+  const editor = document.querySelector<HTMLElement>('[data-editor]');
+  const mobileSegueWeb = iniciais.web.every((v, k) => v === iniciais.mobile[k]);
+  const sincMobile = () => {
+    if (mobileSegueWeb && !mobileTocado) ordens.mobile.splice(0, n, ...ordens.web);
+  };
+  const dica = (txt: string) => {
+    const el = editor?.querySelector<HTMLElement>('[data-editor-msg]');
+    if (el) el.textContent = txt;
+  };
+  /** troca de lugar com o card mais próximo do que está sendo arrastado (a própria vaga conta, para não oscilar) */
+  const reordenarArrasto = () => {
+    if (!arrasto) return;
+    const cx = arrasto.px + arrasto.dx;
+    const cy = arrasto.py + galAtual + arrasto.dy;
+    let melhor = -1;
+    let dmin = Infinity;
+    for (let j = 0; j < n; j++) {
+      const d = Math.hypot(galPos[j].x - cx, galPos[j].y - cy);
+      if (d < dmin) {
+        dmin = d;
+        melhor = j;
+      }
+    }
+    if (melhor < 0 || melhor === arrasto.i) return;
+    const de = perm.indexOf(arrasto.i);
+    const para = perm.indexOf(melhor);
+    perm.splice(de, 1);
+    perm.splice(para, 0, arrasto.i);
+    if (ordemModo === 'mobile') mobileTocado = true;
+    dica('');
+    relayoutGaleria(false);
+  };
+  const guardarOrdem = () => {
+    try {
+      localStorage.setItem(RASCUNHO_ORDEM, JSON.stringify({ web: ordens.web.map(idDe), mobile: ordens.mobile.map(idDe), mobileTocado }));
+    } catch {
+      /* sem armazenamento: segue sem rascunho */
+    }
+  };
+  if (editando && editor) {
+    root.classList.add('is-editando');
+    const segs = [...editor.querySelectorAll<HTMLElement>('[data-ordem]')];
+    const marcar = () => segs.forEach((b) => b.setAttribute('aria-checked', String(b.dataset.ordem === ordemModo)));
+    marcar();
+    for (const b of segs) {
+      b.addEventListener('click', () => {
+        ordemModo = b.dataset.ordem === 'mobile' ? 'mobile' : 'web';
+        if (ordemModo === 'mobile') sincMobile();
+        perm = ordens[ordemModo];
+        marcar();
+        dica('');
+        relayoutGaleria(false);
+      });
+    }
+    editor.querySelector('[data-editor-desfazer]')?.addEventListener('click', () => {
+      perm.splice(0, n, ...iniciais[ordemModo]);
+      if (ordemModo === 'mobile') mobileTocado = false;
+      guardarOrdem();
+      dica('Voltou à ordem salva');
+      relayoutGaleria(false);
+    });
+    editor.querySelector('[data-editor-salvar]')?.addEventListener('click', async () => {
+      sincMobile();
+      const web = ordens.web.map(idDe);
+      const mobile = ordens.mobile.map(idDe);
+      try {
+        const r = await fetch('/__salvar-ordem', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ web, mobile }) });
+        if (r.ok) {
+          try {
+            localStorage.removeItem(RASCUNHO_ORDEM);
+          } catch {
+            /* ok */
+          }
+          return dica('Salvo nos arquivos ✓');
+        }
+      } catch {
+        /* sem servidor de desenvolvimento: cai no copiar */
+      }
+      try {
+        await navigator.clipboard.writeText(JSON.stringify({ web, mobile }, null, 2));
+        dica('Ordem copiada: cole no chat');
+      } catch {
+        dica('Não consegui salvar nem copiar');
+      }
+    });
+  }
+
+  // fundo da página + cor das barras do Safari (iOS): html, wrapper (--color-galeria-bg) e <meta theme-color> sempre juntos
+  const metaTema = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  const secoesBg = ['.foto-seq', '.sobre-seq', '.proj-seq', '.rod-seq'].map((q) => document.querySelector<HTMLElement>(q));
+  let bgAtual = '';
+  let bgT = 0;
+  const paraHex = (c: string) => {
+    const m = c.match(/\d+(\.\d+)?/g);
+    return m && m.length >= 3 ? '#' + m.slice(0, 3).map((v) => Math.round(+v).toString(16).padStart(2, '0')).join('') : c;
+  };
+  const setBg = (cor: string) => {
+    const c = paraHex(cor);
+    if (c === bgAtual) return;
+    bgAtual = c;
+    root.style.backgroundColor = c;
+    metaTema?.setAttribute('content', c);
+  };
+  // cor sob as barras: a da seção que ocupa o centro da tela (ou o offwhite do campo da estrela); senão, o fundo da galeria
+  const corDoFundo = (galeria: string) => {
+    if (document.body.classList.contains('cursor-offwhite')) return getComputedStyle(root).getPropertyValue('--color-off-white').trim() || '#f9ffe1';
+    for (const sec of secoesBg) {
+      if (!sec) continue;
+      const r = sec.getBoundingClientRect();
+      if (r.top <= vh / 2 && r.bottom > vh / 2) {
+        const bgSec = getComputedStyle(sec).backgroundColor;
+        if (bgSec && bgSec !== 'rgba(0, 0, 0, 0)' && bgSec !== 'transparent') return bgSec;
+      }
+    }
+    return galeria;
+  };
+
   const quadro = (agora: number) => {
+    // tela de aviso do mobile (AvisoMobile): a abertura espera
+    if (document.body.classList.contains('is-aviso')) {
+      if (agora - bgT > 150) setBg('#f9ffe1'); // o aviso é offwhite: as barras também
+      quadroAnterior = agora;
+      requestAnimationFrame(quadro);
+      return;
+    }
     const dt = Math.min(64, agora - quadroAnterior);
     quadroAnterior = agora;
     if (pulando && vt >= FIM) pulando = false;
@@ -608,6 +822,12 @@ if (camera && esfera && jujuImg && area && linhas) {
 
     // câmera e fundo
     mix += ((modo === 'galeria' ? 1 : 0) - mix) * 0.07;
+    if (arrasto) {
+      // arrastando perto da borda: a lista rola sozinha
+      if (arrasto.py < navAtual + 90) galAlvo = clamp(galAlvo - 12, 0, galMax);
+      else if (arrasto.py > vh - 90) galAlvo = clamp(galAlvo + 12, 0, galMax);
+      reordenarArrasto();
+    }
     galAtual += (galAlvo - galAtual) * (1 - Math.exp(-dt / TAU_GALERIA));
     rolagemAtual += (rolagem - rolagemAtual) * (1 - Math.exp(-dt / TAU_ROLAGEM)); // por tempo: igual em 30, 60 ou 120 Hz
     const fase1 = curva(clamp(rolagemAtual / 0.45)) * (1 - mix); // a esfera diminui
@@ -615,6 +835,8 @@ if (camera && esfera && jujuImg && area && linhas) {
     camAtual = vh * camP;
     camera.style.transform = `translate3d(0, ${-camAtual.toFixed(2)}px, 0)`;
     // galeria: os cards só aparecem entre o texto do topo (+12px) e o rodapé fixo de contatos; a grade rola dentro dessa janela
+    // mobile, em lista e ainda na galeria (sem ter rolado para as próximas seções): o topo fica fixo sobre fundo vermelho
+    root.classList.toggle('is-topo-fixo', modo === 'galeria' && mix > 0.9 && rolagemAtual < 0.02 && t >= T_EXPLODE + 500);
     if (mix > 0.005) {
       const topoClip = lerp(-400, topoGal + camAtual, mix);
       const baseClip = lerp(-400, camH - (vh - FOOT + camAtual), mix);
@@ -729,7 +951,12 @@ if (camera && esfera && jujuImg && area && linhas) {
     root.style.setProperty('--grao-bg', bg.toFixed(3)); // grão preto no fundo claro, offwhite no escuro
     const cor = corA.map((v, k) => lerp(v, corB[k], bg));
     
-    root.style.setProperty('--color-galeria-bg', `rgb(${cor.map(Math.round).join(' ')})`);
+    const corGaleria = `rgb(${cor.map(Math.round).join(' ')})`;
+    root.style.setProperty('--color-galeria-bg', corGaleria);
+    if (agora - bgT > 120) {
+      bgT = agora; // no máx. ~8 atualizações/s: o Safari reavalia as barras a cada mudança de theme-color
+      setBg(corDoFundo(corGaleria));
+    }
 
     // câmera sobre a fila: zoom, travelling de card em card, recuo
     const zIn = inOut(prog(t, T_ZOOM, 900));
@@ -809,6 +1036,9 @@ if (camera && esfera && jujuImg && area && linhas) {
       let md = ma;
       let z = 0;
       let alvo = 0; // pode receber clique
+      let xf = 0; // posição e eixos do card já na esfera (c = 1): o ajuste dos polos é calculado sobre eles, não sobre o voo
+      let yf = 0;
+      let mf: number[] = [1, 0, 0, 1];
       if (c > 0) {
         const [bx, by, bz] = gira(d.base);
         const f = D / (D - bz / R);
@@ -818,6 +1048,9 @@ if (camera && esfera && jujuImg && area && linhas) {
         const fb = f * u[1];
         const fc = f * v[0];
         const fd = f * v[1];
+        xf = bx * f;
+        yf = by * f;
+        mf = [fa, fb, fc, fd];
         const frente = bz / R; // -1 (atrás) … 1 (de frente)
         const sm = clamp((frente + 0.15) / 0.35);
         const opEsfera = lerp(0.3, 1, sm * sm * (3 - 2 * sm)); // as de trás aparecem de leve: volume
@@ -834,13 +1067,13 @@ if (camera && esfera && jujuImg && area && linhas) {
       if (c > 0.01) {
         // pontas nos polos: o card encolhe o bastante para ficar dentro da silhueta da esfera (sem cortar nem arredondar)
         const lim = (R * D) / Math.sqrt(D * D - 1) * 0.985;
-        const dc = Math.hypot(x, y);
+        const dc = Math.hypot(xf, yf);
         const hw = (d.ar * hs) / 2;
         const hh = hs / 2;
-        const cantos = [[1, 1], [1, -1], [-1, 1], [-1, -1]].map(([p, q]) => [ma * p * hw + mc * q * hh, mb * p * hw + md * q * hh]);
+        const cantos = [[1, 1], [1, -1], [-1, 1], [-1, -1]].map(([p, q]) => [mf[0] * p * hw + mf[2] * q * hh, mf[1] * p * hw + mf[3] * q * hh]);
         let kk = 1;
         for (let it = 0; it < 3; it++) {
-          const mx = Math.max(...cantos.map(([ox, oy]) => Math.hypot(x + kk * ox, y + kk * oy)));
+          const mx = Math.max(...cantos.map(([ox, oy]) => Math.hypot(xf + kk * ox, yf + kk * oy)));
           if (mx <= lim || mx - dc < 1) break;
           kk = Math.max(0.5, (kk * (lim - dc)) / (mx - dc));
         }
@@ -852,20 +1085,32 @@ if (camera && esfera && jujuImg && area && linhas) {
       }
       if (mix > 0.001) {
         // galeria: posição na grade (coordenadas da tela → locais da esfera), escala uniforme, só os originais
-        const gp = galPos[i];
+        const gs = galSuave[i] ?? galPos[i];
+        const alvoG = galPos[i];
+        if (arrasto && arrasto.i === i && !copia) {
+          // card sendo arrastado: gruda no ponteiro (coordenadas de conteúdo da galeria)
+          gs.x = arrasto.px + arrasto.dx;
+          gs.y = arrasto.py + galAtual + arrasto.dy;
+        } else if (!copia) {
+          const k = 1 - Math.exp(-dt / 70);
+          gs.x += (alvoG.x - gs.x) * k;
+          gs.y += (alvoG.y - gs.y) * k;
+        }
+        const gp = copia ? (galSuave[i % n] ?? alvoG) : gs;
         const gx = gp.x - vw / 2;
         const gy = gp.y - galAtual - vh / 2 - navAtual / 2;
         x = lerp(x, gx, mix);
         y = lerp(y, gy, mix);
-        ma = lerp(ma, sGaleria, mix);
+        const sg = galEsc[i % n] ?? sGaleria;
+        ma = lerp(ma, sg, mix);
         mb = lerp(mb, 0, mix);
         mc = lerp(mc, 0, mix);
-        md = lerp(md, sGaleria, mix);
-        op = lerp(op, copia ? 0 : 1, mix);
+        md = lerp(md, sg, mix);
+        op = lerp(op, copia || !galMostra[i % n] ? 0 : 1, mix);
         if (mix > 0.5) z = 1;
         if (mix > 0.5 && !copia) alvo = 1;
       }
-      el.style.transform = `matrix(${ma.toFixed(4)}, ${mb.toFixed(4)}, ${mc.toFixed(4)}, ${md.toFixed(4)}, ${x.toFixed(2)}, ${y.toFixed(2)}) translate(-50%, -50%)`;
+      el.style.transform = `matrix(${ma.toFixed(4)}, ${mb.toFixed(4)}, ${mc.toFixed(4)}, ${md.toFixed(4)}, ${x.toFixed(2)}, ${y.toFixed(2)}) scale(${1 / SUPER}) translate(-50%, -50%)`;
       el.style.opacity = op.toFixed(3);
       el.style.zIndex = String(z);
       el.style.visibility = op < 0.01 ? 'hidden' : '';
@@ -885,6 +1130,7 @@ if (camera && esfera && jujuImg && area && linhas) {
     o.addEventListener('click', () => {
       modo = o.dataset.modo === 'galeria' ? 'galeria' : 'esfera';
       document.querySelector('[data-info]')?.classList.toggle('info--gal', modo === 'galeria');
+      editor?.classList.toggle('is-on', editando && modo === 'galeria');
       if (modo === 'galeria') {
         rolagem = 0; // volta ao 1º viewport antes de trocar
         galAlvo = 0;
@@ -975,6 +1221,13 @@ if (camera && esfera && jujuImg && area && linhas) {
     vt = FIM + 1;
     pendente = inicial === 'sobre' ? rDe(0.8, true) : inicial === 'foto' ? rDe(1.4, true) : inicial === 'trabalho' ? rDe(E2, true) : inicial === 'projetos' ? R_PROJ() : inicial === 'contato' ? R_CONT() : 0; // #trabalho: viewport do "trabalho com"
   }
+
+  // "Ignorar nas próximas vezes" no aviso mobile: segue direto para a galeria, sem a abertura
+  addEventListener('aviso-ignorado', () => {
+    if (vt < FIM) vt = FIM + 1;
+    pendente = null;
+    rolagem = 0;
+  });
 
   requestAnimationFrame(quadro);
 }

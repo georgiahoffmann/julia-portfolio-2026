@@ -21,6 +21,7 @@ function deltaAteCard(midia: HTMLElement, card: HTMLElement) {
 function preparar(modal: HTMLElement) {
   const img = modal.querySelector<HTMLImageElement>('img');
   if (img) img.loading = 'eager';
+  for (const outra of modal.querySelectorAll<HTMLImageElement>('[data-slides] > img')) outra.loading = 'eager'; // lâminas do carrossel
   return img;
 }
 
@@ -91,17 +92,31 @@ document.addEventListener('click', (e) => {
   const alvo = e.target as Element | null;
   const gatilho = alvo?.closest<HTMLElement>('[data-modal]');
   if (gatilho) {
-    if (aberto) return;
+    if (aberto || document.documentElement.classList.contains('is-editando')) return; // no modo de edição, clicar não abre
+    // clicar num carrossel (esfera ou galeria) para a passagem automática: daí em diante a pessoa escolhe
+    const id = gatilho.dataset.slides;
+    if (id) document.dispatchEvent(new CustomEvent('carrossel:parar', { detail: id }));
     const modal = document.getElementById(gatilho.dataset.modal!);
     if (modal) abrir(modal, gatilho);
     return;
   }
+  // setas do carrossel expandido
+  const seta = alvo?.closest<HTMLElement>('[data-seta]');
+  if (aberto && seta && aberto.contains(seta)) {
+    const id = seta.closest<HTMLElement>('[data-slides]')!.dataset.slides;
+    document.dispatchEvent(new CustomEvent('carrossel:ir', { detail: { id, passo: Number(seta.dataset.seta) } }));
+    return;
+  }
   // clicar em qualquer lugar fora da mídia e do link fecha
-  if (aberto && !alvo?.closest('[data-midia], .modal__link') && alvo?.closest('.modal')) fechar();
+  if (aberto && !alvo?.closest('[data-midia], .modal__link, .modal__pontos') && alvo?.closest('.modal')) fechar();
 });
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') fechar();
+  const id = aberto?.querySelector<HTMLElement>('[data-slides]')?.dataset.slides;
+  if (id && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+    document.dispatchEvent(new CustomEvent('carrossel:ir', { detail: { id, passo: e.key === 'ArrowRight' ? 1 : -1 } }));
+  }
 });
 
 // rolou o bastante para o card original sair da tela: a mídia volta suavemente ao lugar
@@ -118,6 +133,7 @@ document.addEventListener('pointerdown', (e) => {
   const alvo = e.target as Element;
   const midia = alvo.closest<HTMLElement>('[data-midia]');
   if (!midia || !aberto.contains(midia)) return;
+  if (alvo.closest('[data-seta]')) return; // setas não arrastam
   const video = alvo.closest('video');
   if (video && e.clientY > video.getBoundingClientRect().bottom - 56) return; // deixa os controles livres
   const figura = figuraDe(aberto);

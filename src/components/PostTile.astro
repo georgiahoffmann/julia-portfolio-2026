@@ -6,9 +6,13 @@ interface Props {
   post: CollectionEntry<'posts'>;
   /** desalinho vertical, de 0 a 1 (fração de --card-nudge) */
   nudge: number;
+  /** fica na esfera e no mobile, mas fora da lista da galeria web */
+  semListaWeb?: boolean;
 }
-const { post, nudge } = Astro.props;
-const { title, tipo, image, alt, link, funcao, video, desktop: d } = post.data;
+const { post, nudge, semListaWeb = false } = Astro.props;
+const { title, tipo, image, alt, link, funcao, video, slides = [], desktop: d } = post.data;
+const frames = image ? [image, ...slides] : [];
+const carrossel = frames.length > 1;
 const ar = d.w / d.h;
 const style = `--ar:${ar};--nudge:${nudge};`;
 const isGif = image?.format === 'gif';
@@ -31,8 +35,16 @@ const modalId = `modal-${post.id}`;
       data-link={link}
       aria-haspopup="dialog"
       aria-label={`Abrir ${alt ?? title}`}
+      data-slides={carrossel ? post.id : undefined}
+      data-post-id={post.id}
+      data-sem-lista-web={semListaWeb ? '' : undefined}
+      data-ordem-mobile={post.data.ordemMobile ?? post.data.ordem}
     >
-      {isGif ? (
+      {carrossel ? (
+        frames.map((f, i) => (
+          <Image src={f} alt={i === 0 ? (alt ?? title) : ''} widths={[300, 600, 900, 1400]} sizes="(max-width: 767px) 50vw, 30vw" loading="lazy" draggable="false" class={i === 0 ? 'is-on' : undefined} />
+        ))
+      ) : isGif ? (
         <img src={image.src} alt={alt ?? title} width={image.width} height={image.height} loading="lazy" draggable="false" />
       ) : (
         <Image src={image} alt={alt ?? title} widths={[300, 600, 900, 1400]} sizes="(max-width: 767px) 50vw, 30vw" loading="lazy" draggable="false" />
@@ -40,13 +52,30 @@ const modalId = `modal-${post.id}`;
     </button>
     <div class="modal" id={modalId} data-anim="modal" role="dialog" aria-modal="true" aria-label={title} aria-hidden="true">
       <figure class="modal__figura" data-figura style={`--ar:${image.width / image.height}`}>
-        <div class="modal__midia" data-midia>
-          {video ? (
+        <div class="modal__midia" data-midia data-slides={carrossel ? post.id : undefined}>
+          {carrossel ? (
+            frames.map((f, i) => (
+              <Image src={f} alt={i === 0 ? (alt ?? title) : ''} widths={[600, 900, 1400, 2000]} sizes="(max-width: 767px) 100vw, 820px" loading="lazy" draggable="false" class={i === 0 ? 'is-on' : undefined} />
+            ))
+          ) : video ? (
             <video src={video} poster={image.src} controls playsinline preload="none" />
           ) : isGif ? (
             <img src={image.src} alt={alt ?? title} width={image.width} height={image.height} loading="lazy" draggable="false" />
           ) : (
             <Image src={image} alt={alt ?? title} widths={[600, 900, 1400, 2000]} sizes="(max-width: 767px) 100vw, 820px" loading="lazy" draggable="false" />
+          )}
+          {carrossel && (
+            <>
+              <button type="button" class="modal__seta modal__seta--ant" data-seta="-1" aria-label="Imagem anterior">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+              </button>
+              <button type="button" class="modal__seta modal__seta--prox" data-seta="1" aria-label="Próxima imagem">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+              </button>
+              <div class="modal__pontos" data-pontos={post.id} role="img" aria-label={`${frames.length} imagens`}>
+                {frames.map((_, i) => <span class={i === 0 ? 'is-on' : undefined} />)}
+              </div>
+            </>
           )}
         </div>
       </figure>
@@ -66,6 +95,7 @@ const modalId = `modal-${post.id}`;
 
 <script>
   import '../scripts/modal.ts';
+  import '../scripts/carrossel.ts';
 </script>
 
 <style>
@@ -98,6 +128,52 @@ const modalId = `modal-${post.id}`;
     height: 100%;
     object-fit: cover;
     -webkit-user-drag: none;
+  }
+  /* carrossel: lâminas empilhadas; a nova entra em fade (600 ms, curva suave) por cima da anterior (scripts/carrossel.ts) */
+  [data-slides] {
+    display: grid;
+  }
+  .modal__midia[data-slides] {
+    position: relative; /* referência das setas (nunca no card: ele é absolute, posicionado pela esfera/galeria) */
+  }
+  [data-slides] :global(img) {
+    grid-area: 1 / 1;
+    opacity: 0;
+  }
+  [data-slides] :global(img.is-ant) {
+    opacity: 1;
+    z-index: 1;
+  }
+  [data-slides] :global(img.is-on) {
+    opacity: 1;
+    z-index: 2;
+    transition: opacity 600ms cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  .modal__seta {
+    position: absolute;
+    top: 50%;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(249 255 225 / 80%);
+    color: var(--color-black);
+    cursor: pointer;
+    transform: translateY(-50%);
+    transition: background var(--duration-fast) var(--ease-soft);
+  }
+  .modal__seta:hover {
+    background: var(--color-off-white);
+  }
+  .modal__seta--ant {
+    left: 10px;
+  }
+  .modal__seta--prox {
+    right: 10px;
   }
   .tile--pendente {
     display: flex;
@@ -158,6 +234,32 @@ const modalId = `modal-${post.id}`;
     aspect-ratio: var(--ar);
     object-fit: contain;
     -webkit-user-drag: none;
+  }
+  /* indicador do carrossel: dentro da imagem, embaixo, como as setas; um ponto por imagem, o da vez preenchido */
+  .modal__pontos {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    z-index: 3;
+    display: flex;
+    gap: 8px;
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: rgb(249 255 225 / 80%);
+    color: var(--color-black);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+  .modal__pontos span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.3;
+    transition: opacity 600ms cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  .modal__pontos span.is-on {
+    opacity: 1;
   }
   .modal__link {
     opacity: 0;

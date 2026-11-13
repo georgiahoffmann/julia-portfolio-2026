@@ -14,12 +14,14 @@ const posts = defineCollection({
       tipo: z.enum(['imagem', 'pendente', 'pendente-video']),
       image: image().optional(),
       alt: z.string().optional(),
+      slides: z.array(image()).optional(), // demais lâminas de um carrossel (a capa é `image`): passam em loop no card
       link: z.string().url().optional(),
       funcao: z.string().optional(), // papel dela na criação do card (aparece ao pairar na esfera)
       video: z.string().optional(), // vídeo de um carrossel (arquivo em public/)
       desktop: rect,
       mobile: rect.optional(),
-      ordem: z.number(),
+      ordem: z.number(), // ordem na galeria (web)
+      ordemMobile: z.number().optional(), // ordem na galeria no mobile; ausente = a mesma da web
     }),
 });
 
