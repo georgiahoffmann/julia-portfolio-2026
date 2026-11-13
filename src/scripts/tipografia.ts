@@ -52,7 +52,9 @@ function preparar(el: HTMLElement) {
   let i = 0;
   for (const n of nodes) {
     if (n.nodeType === Node.ELEMENT_NODE && (n as Element).tagName === 'BR') {
-      vis.append(document.createElement('br'));
+      const br = document.createElement('br');
+      br.className = (n as Element).className; // preserva classes (ex.: quebras só do web)
+      vis.append(br);
       continue;
     }
     for (const parte of (n.textContent ?? '').split(/(\s+)/)) {

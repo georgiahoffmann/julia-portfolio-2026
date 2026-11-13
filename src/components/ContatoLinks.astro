@@ -19,6 +19,9 @@ const s = (await getEntry('sobre', 'julia'))!.data;
     <i class="contato-links__ponto" aria-hidden="true"></i>
     <a class="contato-links__a" style="--rot:2.5deg;--atraso:80ms" href="https://www.linkedin.com/in/julia-ped%C3%B3/" target="_blank" rel="noopener" data-tx={pilulas ? undefined : tx} data-sem-pressao={semPressao} data-tx-atraso="80">{pilulas ? <><span data-tx={tx} data-sem-pressao={semPressao} data-tx-atraso="80" style="--atraso:80ms">Linkedin</span><ArrowUpRight size={'1em'} strokeWidth={2.2} aria-hidden="true" /></> : 'Linkedin'}</a>
   </p>
+  <p class="contato-links__linha contato-links__linha--whats">
+    <a class="contato-links__a" style="--rot:-2.5deg;--atraso:40ms" href="https://wa.me/5551999395522" target="_blank" rel="noopener" data-tx={pilulas ? undefined : tx} data-sem-pressao={semPressao} data-tx-atraso="40">{pilulas ? <><span data-tx={tx} data-sem-pressao={semPressao} data-tx-atraso="40" style="--atraso:40ms">WhatsApp</span><ArrowUpRight size={'1em'} strokeWidth={2.2} aria-hidden="true" /></> : 'WhatsApp'}</a>
+  </p>
   <p class="contato-links__linha">
     <button type="button" class="contato-links__a" style="--rot:-2deg" data-copiar={s.email} aria-label="Copiar o email"><span data-tx={tx} data-sem-pressao={semPressao} data-tx-atraso="160" style="--atraso:160ms">{pilulas ? 'email' : 'Me mande um email!'}</span>{pilulas && <ArrowUpRight size={'1em'} strokeWidth={2.2} aria-hidden="true" />}</button>
   </p>
@@ -40,6 +43,10 @@ const s = (await getEntry('sobre', 'julia'))!.data;
   }
   .contato-links__linha + .contato-links__linha {
     margin-top: 5px;
+  }
+  /* WhatsApp: só no mobile (no web os contatos são Instagram, Linkedin e email) */
+  .contato-links .contato-links__linha--whats {
+    display: none;
   }
   .contato-links a,
   .contato-links button {

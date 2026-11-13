@@ -138,7 +138,7 @@ const projetosLista = await Promise.all(
     </section>
     <section class="rod-seq" aria-label="Contato">
       <div class="grao"><i class="grao__c grao__c--escuro"></i></div>
-      <h2 class="rod-seq__tit" data-tx="rod">Onde me encontrar</h2>
+      <h2 class="rod-seq__tit" data-tx="rod">Onde me <br class="so-mobile" />encontrar</h2>
       <Image class="rod-seq__juju" src={juju} alt="" widths={[600, 1200]} sizes="40vw" />
       <ContatoLinks class="rod-seq__contato" tx="rod" pilulas />
       <a class="rod-seq__credito" href="https://www.linkedin.com/in/georgialirahoffmann/" target="_blank" rel="noopener"><span data-tx="rod" data-tx-atraso="300" style="--atraso:300ms">Powered by Georgia Hoffmann</span><ArrowUpRight size={'1em'} strokeWidth={2.2} aria-hidden="true" /></a>
@@ -609,8 +609,30 @@ const projetosLista = await Promise.all(
     margin-top: 42px !important; /* 42px abaixo do texto que rotaciona */
     display: flex;
     flex-wrap: wrap;
+  .rod-seq .so-mobile { display: none; }
     gap: 8px;
     margin: 0;
+    .rod-seq .so-mobile { display: inline; }
+    /* título: 20px, bold, em duas linhas, 20px mais para baixo */
+    .rod-seq__tit { top: calc(var(--h-nav-atual) + 4px + 20px); font-size: var(--tam-titulo); font-weight: var(--weight-bold); }
+    /* bullets: Instagram 10px para a esquerda, Linkedin 5px para baixo, email 48px para cima */
+    .contato-links.rod-seq__contato a:nth-of-type(1) { left: calc(25% + 3px - 15px); }
+    .contato-links.rod-seq__contato a:nth-of-type(2) { left: calc(75% + 5px); top: calc(43% + 5px); }
+    .contato-links.rod-seq__contato .contato-links__linha:last-child { top: calc(74% + 80px - 68px); }
+    /* WhatsApp: em cima da Juju, 15px acima da cabeça dela (altura da Juju = 0,7727 × a largura), inclinado como os outros */
+    .contato-links.rod-seq__contato .contato-links__linha--whats { display: block; position: absolute; inset: 0; margin: 0; pointer-events: none; }
+    .rod-seq__contato .contato-links__linha--whats .contato-links__a {
+      display: inline-flex;
+      left: 50%;
+      top: calc(50% - clamp(276px, 46vw, 690px) * 0.7727 / 2 - 10px);
+      transform: translate(-50%, -100%) rotate(var(--rot, 0deg));
+    }
+    .rod-seq__contato .contato-links__linha--whats .contato-links__a:hover {
+      transform: translate(-50%, -100%) rotate(var(--rot, 0deg)) translateY(-2px) scale(1.04);
+    }
+    /* galeria (esfera e lista): no rodapé fixo fica só o WhatsApp */
+    .contato-links.contato-esf .contato-links__linha:not(.contato-links__linha--whats) { display: none; }
+    .contato-links.contato-esf .contato-links__linha--whats { display: flex; }
     padding: 0;
     list-style: none;
   }
