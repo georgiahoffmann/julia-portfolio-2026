@@ -43,11 +43,11 @@ npm run preview   # serve o resultado do build
 
 1. Importe o repositório no Vercel.
 2. O Vercel detecta o Astro automaticamente: comando `npm run build`, pasta de saída `dist`. Não é preciso `vercel.json` nem adapter.
-3. Antes de publicar, troque o valor de `site` em `astro.config.mjs` pelo domínio final (a miniatura e a URL canônica dependem dele).
+3. O `site` em `astro.config.mjs` usa a URL provisória da Vercel (`https://julia-portfolio-2026.vercel.app`). Ao comprar o domínio definitivo, troque esse valor (a miniatura e a URL canônica dependem dele).
 
 ## Pendências
 
-- Definir `site` em `astro.config.mjs` (domínio final).
+- Trocar `site` em `astro.config.mjs` pelo domínio definitivo quando for comprado (hoje: URL provisória da Vercel).
 - Capa do projeto Guia do Calouro (`src/assets/projetos/`).
 
 ## Direitos
