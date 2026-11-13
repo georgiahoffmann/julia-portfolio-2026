@@ -1,0 +1,30 @@
+# build
+dist/
+.astro/
+
+# dependências
+node_modules/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+dev.json
+preview.json
+data-store.json
+
+# variáveis de ambiente
+.env
+.env.*
+!.env.example
+
+# deploy
+.vercel/
+
+# macOS
+.DS_Store
+
+# editores
+.idea/
+.vscode/

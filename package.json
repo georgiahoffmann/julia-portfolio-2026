@@ -1,0 +1,19 @@
+{
+  "name": "julia-portfolio-2026",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Portfólio de Júlia Pedó, designer visual (Astro, site estático).",
+  "type": "module",
+  "engines": {
+    "node": ">=22.23.4"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@lucide/astro": "^1.71.0",
+    "astro": "^7.4.7"
+  }
+}
