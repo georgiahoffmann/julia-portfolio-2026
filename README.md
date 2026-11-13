@@ -29,7 +29,7 @@ npm run preview   # serve o resultado do build
 - `src/styles/` — tokens de design, fontes e estilos globais
 - `src/content/` — textos e dados: `posts/`, `projetos/` e `sobre/`
 - `src/assets/` — imagens processadas pelo Astro (posts, projetos, seção sobre, Juju)
-- `public/` — arquivos servidos como estão: fontes, cursores, sprite do cavalo, vídeo do carrossel, favicon e `robots.txt`
+- `public/` — arquivos servidos como estão: fontes, cursores, sprite do cavalo, vídeo do carrossel, favicon, miniatura de compartilhamento (`miniatura.jpg`, 1200×630) e `robots.txt`
 
 ## Editar o conteúdo
 
@@ -43,12 +43,11 @@ npm run preview   # serve o resultado do build
 
 1. Importe o repositório no Vercel.
 2. O Vercel detecta o Astro automaticamente: comando `npm run build`, pasta de saída `dist`. Não é preciso `vercel.json` nem adapter.
-3. Antes de publicar, troque o valor de `site` em `astro.config.mjs` pelo domínio final.
+3. Antes de publicar, troque o valor de `site` em `astro.config.mjs` pelo domínio final (a miniatura e a URL canônica dependem dele).
 
 ## Pendências
 
 - Definir `site` em `astro.config.mjs` (domínio final).
-- Adicionar uma imagem de compartilhamento (`og:image`) em `src/layouts/Base.astro`.
 - Capa do projeto Guia do Calouro (`src/assets/projetos/`).
 
 ## Direitos

@@ -15,9 +15,10 @@ interface Props {
   intro?: boolean;
 }
 const {
-  title = 'Júlia Pedó — designer visual',
-  description = 'Portfólio de Júlia Pedó, designer visual de Porto Alegre: posts para redes sociais, flyers, identidades visuais e capas de disco.',
+  title = 'Julia Pedó – Designer Visual em Porto Alegre',
+  description = 'Julia Pedó – Designer Visual em Porto Alegre.',
   height = 0, mobileHeight = 0, canvas = false, intro = false } = Astro.props;
+const ogImage = Astro.site ? new URL('/miniatura.jpg', Astro.site).href : undefined;
 const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : undefined;
 ---
 
@@ -35,10 +36,17 @@ const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : un
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     {canonical && <meta property="og:url" content={canonical} />}
-    <!-- TODO: adicionar <meta property="og:image"> com uma imagem de compartilhamento (1200x630) quando houver -->
-    <meta name="twitter:card" content="summary" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    {ogImage && <meta property="og:image:width" content="1200" />}
+    {ogImage && <meta property="og:image:height" content="630" />}
+    <meta property="og:image:alt" content="Crachá do Studio Pirá com a foto de Julia Pedó" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {ogImage && <meta name="twitter:image" content={ogImage} />}
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preload" href="/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/julia-regular.otf" as="font" type="font/otf" crossorigin />
   </head>
