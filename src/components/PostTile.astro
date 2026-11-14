@@ -1,5 +1,5 @@
 ---
-import { Image } from 'astro:assets';
+import { Image, getImage } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 
 interface Props {
@@ -18,6 +18,16 @@ const style = `--ar:${ar};--nudge:${nudge};`;
 const isGif = image?.format === 'gif';
 const clicavel = tipo === 'imagem' && !!image;
 const modalId = `modal-${post.id}`;
+// lâminas 2+ do carrossel NO CARD: mesmas imagens/larguras de antes, mas só começam a baixar quando scripts/carrossel.ts as pede
+// (antes as ~100 lâminas escondidas baixavam todas na abertura). A imagem não muda; só o momento do download.
+const tardias = carrossel
+  ? await Promise.all(
+      frames.slice(1).map(async (f) => {
+        const r = await getImage({ src: f, widths: [300, 600, 900, 1400], sizes: '(max-width: 767px) 50vw, 30vw', format: 'webp' });
+        return { src: r.src, srcset: r.srcSet.attribute, w: r.attributes.width, h: r.attributes.height };
+      }),
+    )
+  : [];
 ---
 
 {
@@ -42,10 +52,14 @@ const modalId = `modal-${post.id}`;
     >
       {carrossel ? (
         frames.map((f, i) => (
-          <Image src={f} alt={i === 0 ? (alt ?? title) : ''} widths={[300, 600, 900, 1400]} sizes="(max-width: 767px) 50vw, 30vw" loading="lazy" draggable="false" class={i === 0 ? 'is-on' : undefined} />
+          i === 0 ? (
+            <Image src={f} alt={alt ?? title} widths={[300, 600, 900, 1400]} sizes="(max-width: 767px) 50vw, 30vw" loading="lazy" draggable="false" class="is-on" />
+          ) : (
+            <img data-src={tardias[i - 1].src} data-srcset={tardias[i - 1].srcset} sizes="(max-width: 767px) 50vw, 30vw" width={tardias[i - 1].w} height={tardias[i - 1].h} alt="" decoding="async" draggable="false" />
+          )
         ))
       ) : isGif ? (
-        <img src={image.src} alt={alt ?? title} width={image.width} height={image.height} loading="lazy" draggable="false" />
+        <img src={image.src} alt={alt ?? title} width={image.width} height={image.height} loading="lazy" fetchpriority="low" decoding="async" draggable="false" />
       ) : (
         <Image src={image} alt={alt ?? title} widths={[300, 600, 900, 1400]} sizes="(max-width: 767px) 50vw, 30vw" loading="lazy" draggable="false" />
       )}
@@ -209,6 +223,11 @@ const modalId = `modal-${post.id}`;
   .modal.is-open {
     visibility: visible;
     pointer-events: auto;
+  }
+  /* modal fechado não renderiza nem dispara o carregamento preguiçoso das imagens grandes (todas ficavam no viewport e baixavam já na abertura).
+     modal.ts força loading="eager" ao abrir, então a imagem carrega na hora do clique, como já era a intenção. */
+  .modal:not(.is-open) {
+    content-visibility: hidden;
   }
   .modal__figura {
     margin: 0;

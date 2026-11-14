@@ -10,12 +10,32 @@ const fimAnt = new Map<string, number>();
 
 const grupos = (id: string) => [...document.querySelectorAll<HTMLElement>(`[data-slides="${CSS.escape(id)}"]`)];
 
+/** começa a baixar a lâmina i nos cards (as lâminas 2+ nascem sem src, ver PostTile.astro). Devolve se ela já está pronta. */
+function carregar(id: string, i: number) {
+  let pronta = true;
+  for (const g of grupos(id)) {
+    const img = g.querySelectorAll<HTMLImageElement>(':scope > img')[i];
+    if (!img) continue;
+    if (img.dataset.srcset) {
+      img.srcset = img.dataset.srcset;
+      if (img.dataset.src) img.src = img.dataset.src;
+      delete img.dataset.srcset;
+      delete img.dataset.src;
+    }
+    if (!img.closest('.modal') && (!img.complete || !img.naturalWidth)) pronta = false; // o card expandido carrega só ao abrir (modal.ts)
+  }
+  return pronta;
+}
+
 function ir(id: string, passo: number) {
   const gs = grupos(id);
   const n = gs[0]?.querySelectorAll(':scope > img').length ?? 0;
   if (n < 2) return;
   const atual = indice.get(id) ?? 0;
   const i = (atual + passo + n) % n;
+  // a próxima lâmina só entra quando já foi baixada (sem fade de imagem vazia); a seguinte já começa a baixar
+  if (!carregar(id, i)) return;
+  carregar(id, (i + passo + n) % n);
   indice.set(id, i);
   for (const g of gs) {
     const imgs = g.querySelectorAll<HTMLElement>(':scope > img');
@@ -51,5 +71,17 @@ document.addEventListener('carrossel:ir', (e) => {
   parados.add(id);
   ir(id, passo);
 });
+
+// depois da abertura, em ociosidade e escalonado, baixa a 2ª lâmina de cada carrossel (uma por vez, sem competir com a abertura)
+const ids0 = () => [...new Set([...document.querySelectorAll<HTMLElement>('[data-slides]')].map((g) => g.dataset.slides!))];
+const pre = (fila: string[]) => {
+  const id = fila.shift();
+  if (!id) return;
+  carregar(id, 1);
+  window.setTimeout(() => pre(fila), 350);
+};
+const iniciarPre = () => pre(ids0());
+if (document.readyState === 'complete') window.setTimeout(iniciarPre, 1500);
+else addEventListener('load', () => window.setTimeout(iniciarPre, 1500), { once: true });
 
 if (!matchMedia('(prefers-reduced-motion: reduce)').matches) window.setTimeout(ciclo, REPOUSO);

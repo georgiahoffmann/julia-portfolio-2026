@@ -513,7 +513,8 @@ const projetosLista = await Promise.all(
       --mx: calc(var(--m) * 20);
       --my: calc(var(--m) * 72);
       /* o quadro do editor tem 14 linhas, mas só as 8 primeiras têm conteúdo: a seção termina na linha 8 (+ a margem vertical de baixo) */
-      height: calc(var(--m) * (72 + 8 * 90 + 7 * 12 + 72));
+      height: calc(var(--m) * (72 + 8 * 90 + 7 * 12 + 72) - 48px);
+      padding-bottom: calc(var(--my) - 48px); /* 48px a menos no final: a altura e o respiro de baixo diminuem juntos, então as linhas do grid não encolhem */
       grid-template-columns: repeat(5, minmax(0, 1fr));
       grid-template-rows: repeat(8, minmax(0, 1fr));
       gap: calc(var(--m) * 12);
@@ -624,7 +625,7 @@ const projetosLista = await Promise.all(
     left: var(--mx);
     top: calc(var(--h-nav-atual) + 4px);
     margin: 0;
-    font-size: calc(clamp(44px, 9.6vw, 170px) * 0.56);
+    font-size: calc(clamp(44px, 9.6vw, 170px) * 0.56 - 4px); /* web: 4px menor (o mobile redefine abaixo) */
     font-weight: var(--weight-semibold);
   }
   .rod-seq__juju {
@@ -685,7 +686,7 @@ const projetosLista = await Promise.all(
     .rod-seq__contato .contato-links__a { font-weight: var(--weight-medium); }
   }
   @media (max-width: 767px) {
-    .rod-seq { --mx: calc(var(--u) * var(--space-nav-edge-mobile)); height: 100vh; } /* mobile: exatamente a altura do viewport (sem o mínimo de 560px) */
+    .rod-seq { --mx: calc(var(--u) * var(--space-nav-edge-mobile)); height: 100vh; height: 100svh; } /* mobile: exatamente a altura da tela visível (sem o mínimo de 560px; svh desconta as barras do navegador) */
     .rod-seq .so-mobile { display: inline; }
     /* mobile: WhatsApp e email mais acima que na web */
     .rod-seq__contato { --whats-dy: 5px; --email-dy: -114px; --linkedin-dy: 15px; }
@@ -884,6 +885,9 @@ const projetosLista = await Promise.all(
       font-size: 10vw; /* "Desdobramentos" (palavra mais longa) precisa caber numa linha */
     }
     .pilula { font-size: calc(11px * 1.3 * 0.85); } /* bullets 30% maiores no mobile, menos 15% (11px → ~12.2px; padding em em e texto acompanham) */
+    /* stroke nítido: o giro + mix-blend-mode rasterizava a borda de 1px em baixa resolução; camada própria, rasterizada na densidade da tela */
+    .pilula { will-change: transform; backface-visibility: hidden; -webkit-backface-visibility: hidden; transform-style: flat; }
+    .pilula::after { inset: 0; border-width: 1px; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
     .pilula span.tx, .pilula span { word-spacing: 0.22em; } /* espaço entre palavras dos bullets: 0.12em → 0.22em (mobile) */
     .pilulas {
       margin-top: 42px !important;
@@ -893,6 +897,7 @@ const projetosLista = await Promise.all(
     .sobre-seq {
       align-items: center;
       height: 100vh; /* ocupa exatamente o viewport; o conteúdo fica centralizado na vertical */
+      height: 100svh; /* celular real: 100vh inclui a área das barras do navegador e deixava a seção mais alta que a tela visível */
       min-height: 0;
       padding-block: calc(100vw * 72 / 390);
     }

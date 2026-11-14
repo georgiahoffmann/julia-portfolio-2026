@@ -105,6 +105,17 @@ if (camera && esfera && jujuImg && area && linhas) {
   const inOutSine = (p: number) => -(Math.cos(Math.PI * p) - 1) / 2;
   const outCubic = (p: number) => 1 - (1 - p) ** 3;
   const lerp = (a: number, b: number, p: number) => a + (b - a) * p;
+  // escrita de estilo só quando o valor muda: no laço de quadro, reescrever o mesmo valor (principalmente variáveis CSS no <html>)
+  // invalida o estilo da página toda a cada quadro. O resultado visual é idêntico; só deixa de recalcular à toa.
+  const memo = new WeakMap<Element, Map<string, string>>();
+  const ocultoAntes: boolean[] = []; // por card: já estava invisível no quadro anterior
+  const sp = (el: HTMLElement, prop: string, v: string) => {
+    let m = memo.get(el);
+    if (!m) memo.set(el, (m = new Map()));
+    if (m.get(prop) === v) return;
+    m.set(prop, v);
+    el.style.setProperty(prop, v);
+  };
   // ---- sensação da rolagem (ajuste fino) ----
   // TAU_ROLAGEM: constante de tempo (ms) com que a imagem alcança o gesto. Menor = mais imediato (antes: ~230 ms a 60 Hz, variando com o monitor).
   const TAU_ROLAGEM = 110;
@@ -230,7 +241,8 @@ if (camera && esfera && jujuImg && area && linhas) {
     }
     return e + acc;
   };
-  const FOOT = 64; // altura do rodapé fixo de contatos na galeria
+  const FOOT_BASE = 64; // altura do rodapé fixo de contatos na galeria
+  const foot = () => FOOT_BASE + (innerWidth >= 768 ? 5 : 0); // web: +5px de respiro acima do rodapé
   let topoGal = 0; // y onde a grade da galeria começa (12px abaixo do texto/toggle do topo)
   let footH = 0;
   let rodH = 0;
@@ -303,7 +315,7 @@ if (camera && esfera && jujuImg && area && linhas) {
     const cfg = anelar(m * 2, arsN, gapE, grande.h * 0.5); // metade do tamanho
     hs = cfg.h;
     // nitidez: no mobile o card nasce SUPER vezes maior no layout e a matriz o reduz (o Chrome rasteriza `will-change: transform` no tamanho de layout: com 1x as capas ficavam borradas ao ampliar)
-    SUPER = vw < 768 ? 3 : 1;
+    SUPER = vw < 768 ? 2 : 1; // era 3: 2× já mantém a nitidez e rasteriza 56% menos pixels por card
     esfera.style.setProperty('--card-h', `${hs * SUPER}px`);
 
     let idx = 0;
@@ -457,7 +469,7 @@ if (camera && esfera && jujuImg && area && linhas) {
       fecha(mm, true);
       for (let i = 0; i < m; i++) if (foraDaLista(i)) galPos[i] = galPos[lista[mm - 1]]; // fora da lista: sem posição própria (ficam ocultos)
       for (let q = m; q < tiles.length; q++) galPos[q] = galPos[q - m]; // cópias seguem os originais (ficam ocultas)
-      galMax = Math.max(0, y0 - gapG - (vh - FOOT) + (movel ? 20 : 0)); // mobile: 20px de respiro embaixo, para ver os últimos cards antes de a rolagem seguir para o sobre
+      galMax = Math.max(0, y0 - gapG - (vh - foot()) + (movel ? 20 : 40)); // respiro embaixo da lista, para ver os últimos cards antes de a rolagem seguir para o sobre (mobile 20px, web 40px); mobile: 20px de respiro embaixo, para ver os últimos cards antes de a rolagem seguir para o sobre
       galAlvo = clamp(galAlvo, 0, galMax);
       if (snap || galSuave.length !== tiles.length) galSuave = galPos.map((g) => ({ ...g })); // reordenar (editor) desliza; redimensionar não
     };
@@ -531,16 +543,21 @@ if (camera && esfera && jujuImg && area && linhas) {
   const R_CONT = () => RMAX; // contato: última seção
   const R_PROJ = () => rDe(E3, true); // rolagem em que a seção dos projetos está no topo
   // na galeria, primeiro corre a lista; chegando ao fim, a rolagem segue para a estrela (e volta na ordem inversa)
+  // mobile, galeria → sobre: a passagem pela estrela rende 40% mais por gesto (menos toque do usuário para a transição andar)
+  const GANHO_ESTRELA = () => (innerWidth < 768 && rolagem < 0.8 + P1 ? 1.4 : 1);
+  // seção de projetos (da saída do 'trabalho com' até o fim dos projetos): a rolagem rende 25% mais por gesto (só no mobile)
+  const GANHO_PROJETOS = () => (innerWidth < 768 && rolagem >= rDe(E2) && rolagem <= rDe(E3 + extraEf) ? 1.25 : 1);
+  const ganhoRolagem = () => GANHO_ESTRELA() * GANHO_PROJETOS();
   const rolarPor = (d: number, k: number) => {
     if (modo === 'galeria') {
       if (d > 0) {
         if (galAlvo < galMax - 0.5) galAlvo = clamp(galAlvo + d, 0, galMax);
-        else rolagem = clamp(rolagem + d / (k * 1.25), 0, RMAX);
-      } else if (rolagem > 0) rolagem = clamp(rolagem + d / (rolagem < 0.8 + P1 ? k * 1.25 : k), 0, RMAX);
+        else rolagem = clamp(rolagem + (d * ganhoRolagem()) / (k * 1.25), 0, RMAX);
+      } else if (rolagem > 0) rolagem = clamp(rolagem + (d * ganhoRolagem()) / (rolagem < 0.8 + P1 ? k * 1.25 : k), 0, RMAX);
       else galAlvo = clamp(galAlvo + d, 0, galMax);
       return;
     }
-    rolagem = clamp(rolagem + d / (rolagem < 0.8 + P1 ? k * 1.25 : k), 0, RMAX); // saída da esfera e GIF: mais firme, menos erro
+    rolagem = clamp(rolagem + (d * ganhoRolagem()) / (rolagem < 0.8 + P1 ? k * 1.25 : k), 0, RMAX); // saída da esfera e GIF: mais firme, menos erro
   };
 
   area.addEventListener('pointerdown', (e) => {
@@ -674,18 +691,27 @@ if (camera && esfera && jujuImg && area && linhas) {
   const desenharLinhas = (rodar: (v: [number, number, number]) => readonly [number, number, number], raio: number) => {
     let frente = '';
     let tras = '';
+    const r1 = (v: number) => Math.round(v * 10) / 10; // 1 casa decimal, sem alocar string intermediária
     for (const pts of curvas) {
-      let ant: { x: number; y: number; f: boolean } | null = null;
+      let ax = 0;
+      let ay = 0;
+      let af = false;
+      let tem = false;
       for (const p of pts) {
         const [x, y, z] = rodar([p[0] * raio, p[1] * raio, p[2] * raio]);
         const k = D / (D - z / raio);
-        const cur = { x: x * k, y: y * k, f: z >= 0 };
-        if (ant) {
-          const seg = `M${ant.x.toFixed(1)} ${ant.y.toFixed(1)}L${cur.x.toFixed(1)} ${cur.y.toFixed(1)}`;
-          if (ant.f && cur.f) frente += seg;
+        const cx = r1(x * k);
+        const cy = r1(y * k);
+        const cf = z >= 0;
+        if (tem) {
+          const seg = `M${ax} ${ay}L${cx} ${cy}`;
+          if (af && cf) frente += seg;
           else tras += seg;
         }
-        ant = cur;
+        ax = cx;
+        ay = cy;
+        af = cf;
+        tem = true;
       }
     }
     // contorno: silhueta da esfera sob perspectiva
@@ -857,15 +883,15 @@ if (camera && esfera && jujuImg && area && linhas) {
     const fase1 = curva(clamp(rolagemAtual / 0.45)) * (1 - mix); // a esfera diminui
     const camP = inOut(prog(t, T_CAMERA, 1500));
     camAtual = vh * camP;
-    camera.style.transform = `translate3d(0, ${-camAtual.toFixed(2)}px, 0)`;
+    sp(camera, 'transform', `translate3d(0, ${-camAtual.toFixed(2)}px, 0)`);
     // galeria: os cards só aparecem entre o texto do topo (+12px) e o rodapé fixo de contatos; a grade rola dentro dessa janela
     // mobile, em lista e ainda na galeria (sem ter rolado para as próximas seções): o topo fica fixo sobre fundo vermelho
     root.classList.toggle('is-topo-fixo', modo === 'galeria' && mix > 0.9 && rolagemAtual < 0.02 && t >= T_EXPLODE + 500);
     if (mix > 0.005) {
       const topoClip = lerp(-400, topoGal + camAtual, mix);
-      const baseClip = lerp(-400, camH - (vh - FOOT + camAtual), mix);
-      camera.style.clipPath = `inset(${topoClip.toFixed(1)}px 0 ${baseClip.toFixed(1)}px 0)`;
-    } else camera.style.clipPath = '';
+      const baseClip = lerp(-400, camH - (vh - foot() + camAtual), mix);
+      sp(camera, 'clip-path', `inset(${topoClip.toFixed(1)}px 0 ${baseClip.toFixed(1)}px 0)`);
+    } else sp(camera, 'clip-path', '');
     // estrela: aparece no centro e cresce com a rolagem (proporcional, em escala geométrica) até cobrir 100% da tela
     const ef = efetiva(rolagemAtual);
     const g = clamp((ef - 0.04) / 0.76);
@@ -877,12 +903,12 @@ if (camera && esfera && jujuImg && area && linhas) {
     const gifV = inOut(tomarP);
     const campo = clamp((g - 0.9) / 0.1);
     if (estrela) {
-      estrela.style.setProperty('--w', `${(wMin * (wMax / wMin) ** gE).toFixed(1)}px`);
-      estrela.style.setProperty('--op', clamp(g / 0.06).toFixed(3));
-      estrela.style.setProperty('--campo', campo.toFixed(3));
-      estrela.style.setProperty('--gif', gifV.toFixed(4));
+      sp(estrela, '--w', `${(wMin * (wMax / wMin) ** gE).toFixed(1)}px`);
+      sp(estrela, '--op', clamp(g / 0.06).toFixed(3));
+      sp(estrela, '--campo', campo.toFixed(3));
+      sp(estrela, '--gif', gifV.toFixed(4));
       estrela.classList.toggle('is-gif', gifV > 0.9);
-      estrela.style.visibility = g > 0.001 ? 'visible' : 'hidden';
+      sp(estrela, 'visibility', g > 0.001 ? 'visible' : 'hidden');
     }
     const sobreP = clamp((ef - 0.8) / 0.6); // GIF → foto (linear: a página acompanha a mão, sem aceleração nas bordas)
     const sobreP2 = clamp((ef - 1.4) / S2); // foto → "trabalho com"
@@ -892,7 +918,7 @@ if (camera && esfera && jujuImg && area && linhas) {
     // translação do mundo neste quadro (também usada para localizar elementos sem ler o layout)
     const ty = -sobreP * vh - sobreP2 * (secH || vh) - sobreP3 * (sobreH || vh) - extraPx - sobreP4 * (rodH || vh);
     tyAtual = ty;
-    if (mundo) mundo.style.transform = `translate3d(0, ${(Math.round(ty * dprPx) / dprPx).toFixed(3)}px, 0)`;
+    if (mundo) sp(mundo, 'transform', `translate3d(0, ${(Math.round(ty * dprPx) / dprPx).toFixed(3)}px, 0)`);
     // progressos do ALVO (o que o usuário pediu), sem o atraso do seguimento: gatilhos e indicadores respondem à intenção
     const efT = efetiva(rolagem);
     const pT1 = clamp((efT - 0.8) / 0.6);
@@ -942,8 +968,8 @@ if (camera && esfera && jujuImg && area && linhas) {
       const e1 = ss(sobreP2, 0.3, 1);
       const sobreBg = misturar(OFF, paleta.bg, e1);
       const sobreFg = misturar(RED, paleta.fg, e1);
-      secao.style.setProperty('--fundo-vivo', css3(sobreBg));
-      secao.style.setProperty('--fg-vivo', css3(sobreFg));
+      sp(secao, '--fundo-vivo', css3(sobreBg));
+      sp(secao, '--fg-vivo', css3(sobreFg));
     }
     if (!reduzir) {
       // imagens: cantos bem arredondados ao entrar, endireitando até ficarem quadrados no meio da tela e arredondando de novo ao sair
@@ -972,11 +998,11 @@ if (camera && esfera && jujuImg && area && linhas) {
     document.body.classList.toggle('is-estrela', g > 0.05); // esconde o toggle de visualização
     document.body.classList.toggle('cursor-offwhite', campo > 0.7); // cursor próprio do viewport offwhite
     const bg = inOut(prog(t, T_FUNDO, 4200));
-    root.style.setProperty('--grao-bg', bg.toFixed(3)); // grão preto no fundo claro, offwhite no escuro
+    sp(root, '--grao-bg', bg.toFixed(3)); // grão preto no fundo claro, offwhite no escuro
     const cor = corA.map((v, k) => lerp(v, corB[k], bg));
     
     const corGaleria = `rgb(${cor.map(Math.round).join(' ')})`;
-    root.style.setProperty('--color-galeria-bg', corGaleria);
+    sp(root, '--color-galeria-bg', corGaleria);
     if (agora - bgT > 120) {
       bgT = agora; // no máx. ~8 atualizações/s: o Safari reavalia as barras a cada mudança de theme-color
       setBg(corDoFundo(corGaleria));
@@ -1009,11 +1035,11 @@ if (camera && esfera && jujuImg && area && linhas) {
       }
       zoom += (zoomAlvo - zoom) * 0.12;
     }
-    if (info && girar) info.style.setProperty('--esfera-d', `${((R * D) / Math.sqrt(D * D - 1) * 2 * zoom).toFixed(0)}px`);
+    if (info && girar) sp(info, '--esfera-d', `${((R * D) / Math.sqrt(D * D - 1) * 2 * zoom).toFixed(0)}px`);
     // o zoom da esfera entra junto com a explosão (antes só valia depois dela: a esfera dava um salto de tamanho ao fim da abertura)
     const explode = outCubic(prog(t, T_EXPLODE, 1400));
     const sc = escalaCam * lerp(lerp(1, zoom * lerp(1, 0.8, fase1), explode), 1, mix);
-    esfera.style.transform = `rotate(${roll.toFixed(3)}deg) translate(${(-foco * escalaCam).toFixed(2)}px, ${(-fy * escalaCam).toFixed(2)}px) scale(${sc.toFixed(4)})`;
+    sp(esfera, 'transform', `rotate(${roll.toFixed(3)}deg) translate(${(-foco * escalaCam).toFixed(2)}px, ${(-fy * escalaCam).toFixed(2)}px) scale(${sc.toFixed(4)})`);
 
     const cy = Math.cos(ry);
     const sy_ = Math.sin(ry);
@@ -1134,15 +1160,18 @@ if (camera && esfera && jujuImg && area && linhas) {
         if (mix > 0.5) z = 1;
         if (mix > 0.5 && !copia) alvo = 1;
       }
-      el.style.transform = `matrix(${ma.toFixed(4)}, ${mb.toFixed(4)}, ${mc.toFixed(4)}, ${md.toFixed(4)}, ${x.toFixed(2)}, ${y.toFixed(2)}) scale(${1 / SUPER}) translate(-50%, -50%)`;
-      el.style.opacity = op.toFixed(3);
-      el.style.zIndex = String(z);
-      el.style.visibility = op < 0.01 ? 'hidden' : '';
-      el.style.pointerEvents = girar && alvo && op > 0.6 && rolagemAtual < 0.6 ? 'auto' : 'none';
+      const oculto = op < 0.01;
+      if (oculto && ocultoAntes[i]) return; // card invisível que continua invisível: não há o que escrever
+      ocultoAntes[i] = oculto;
+      sp(el, 'transform', `matrix(${ma.toFixed(4)}, ${mb.toFixed(4)}, ${mc.toFixed(4)}, ${md.toFixed(4)}, ${x.toFixed(2)}, ${y.toFixed(2)}) scale(${1 / SUPER}) translate(-50%, -50%)`);
+      sp(el, 'opacity', op.toFixed(3));
+      sp(el, 'z-index', String(z));
+      sp(el, 'visibility', oculto ? 'hidden' : '');
+      sp(el, 'pointer-events', girar && alvo && op > 0.6 && rolagemAtual < 0.6 ? 'auto' : 'none');
     });
     // estrutura da esfera: meridianos e paralelos de 0,8px, girando junto com os cards
     const we = outCubic(prog(t, T_EXPLODE, 1400));
-    linhas.style.opacity = (we * (1 - mix)).toFixed(3);
+    sp(linhas, 'opacity', (we * (1 - mix)).toFixed(3));
     if (we > 0 && mix < 0.99) desenharLinhas(gira, R);
 
     requestAnimationFrame(quadro);
