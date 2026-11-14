@@ -108,7 +108,11 @@ if (camera && esfera && jujuImg && area && linhas) {
   // ---- sensação da rolagem (ajuste fino) ----
   // TAU_ROLAGEM: constante de tempo (ms) com que a imagem alcança o gesto. Menor = mais imediato (antes: ~230 ms a 60 Hz, variando com o monitor).
   const TAU_ROLAGEM = 110;
-  const TAU_GALERIA = 120; // idem, rolagem interna da galeria
+  const TAU_GALERIA = TAU_ROLAGEM; // idem, rolagem interna da galeria: o mesmo seguimento do resto do site
+  // inércia do toque na galeria (mobile): ao soltar o dedo, a lista segue com a velocidade do gesto e desacelera (o resto do site já 'escorrega' assim)
+  const TAU_INERCIA = 380; // ms: quanto a velocidade leva para cair a 1/e
+  let vInercia = 0; // px/ms (positivo = rolar para baixo)
+  let tMove = 0;
   // CURVA_SCROLL: 0 = linear (acompanha o dedo), 1 = smoothstep. A suavização já vem do seguimento acima; o cúbico antigo somava uma segunda camada de atraso.
   const CURVA_SCROLL = 0.35;
   const curva = (p: number) => lerp(p, p * p * (3 - 2 * p), CURVA_SCROLL);
@@ -453,7 +457,7 @@ if (camera && esfera && jujuImg && area && linhas) {
       fecha(mm, true);
       for (let i = 0; i < m; i++) if (foraDaLista(i)) galPos[i] = galPos[lista[mm - 1]]; // fora da lista: sem posição própria (ficam ocultos)
       for (let q = m; q < tiles.length; q++) galPos[q] = galPos[q - m]; // cópias seguem os originais (ficam ocultas)
-      galMax = Math.max(0, y0 - gapG - (vh - FOOT));
+      galMax = Math.max(0, y0 - gapG - (vh - FOOT) + (movel ? 20 : 0)); // mobile: 20px de respiro embaixo, para ver os últimos cards antes de a rolagem seguir para o sobre
       galAlvo = clamp(galAlvo, 0, galMax);
       if (snap || galSuave.length !== tiles.length) galSuave = galPos.map((g) => ({ ...g })); // reordenar (editor) desliza; redimensionar não
     };
@@ -556,6 +560,8 @@ if (camera && esfera && jujuImg && area && linhas) {
     }
     ativos.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY });
     vry = 0;
+    vInercia = 0;
+    tMove = 0;
     if (ativos.size === 2) {
       const [a, b] = [...ativos.values()];
       pinca = { d: Math.hypot(a.x - b.x, a.y - b.y), z: zoomAlvo };
@@ -583,6 +589,11 @@ if (camera && esfera && jujuImg && area && linhas) {
     moveu = true;
     vry = dx * 0.006;
     if (modo !== 'galeria') ry += vry;
+    if (e.pointerType !== 'mouse' && modo === 'galeria') {
+      const dtm = Math.max(1, e.timeStamp - (tMove || e.timeStamp - 16));
+      vInercia = vInercia * 0.6 + ((-dy / dtm) * 0.4); // média móvel: ignora trancos isolados
+      tMove = e.timeStamp;
+    }
     if (!modalAberto()) rolarPor(-dy, vh * 0.8); // arrastar para cima = rolar
   });
   const soltar = (e: PointerEvent) => {
@@ -591,6 +602,7 @@ if (camera && esfera && jujuImg && area && linhas) {
       if (editando) guardarOrdem();
     }
     if (!ativos.delete(e.pointerId)) return;
+    if (e.timeStamp - tMove > 80 || ativos.size > 0 || e.type === 'pointercancel') vInercia = 0; // parou antes de soltar: sem inércia
     if (ativos.size < 2) pinca = null;
   };
   addEventListener('pointerup', soltar);
@@ -774,7 +786,7 @@ if (camera && esfera && jujuImg && area && linhas) {
   }
 
   // fundo da página + cor das barras do Safari (iOS): html, wrapper (--color-galeria-bg) e <meta theme-color> sempre juntos
-  const metaTema = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  let metaTema = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   const secoesBg = ['.foto-seq', '.sobre-seq', '.proj-seq', '.rod-seq'].map((q) => document.querySelector<HTMLElement>(q));
   let bgAtual = '';
   let bgT = 0;
@@ -787,7 +799,14 @@ if (camera && esfera && jujuImg && area && linhas) {
     if (c === bgAtual) return;
     bgAtual = c;
     root.style.backgroundColor = c;
-    metaTema?.setAttribute('content', c);
+    root.style.setProperty('--bg-barras', c); // tiras fixas das bordas (Safari iOS 26 relê a cor delas)
+    if (metaTema) {
+      // trocar o nó (e não só o atributo) força o Safari a reler o theme-color
+      const novo = metaTema.cloneNode() as HTMLMetaElement;
+      novo.setAttribute('content', c);
+      metaTema.replaceWith(novo);
+      metaTema = novo;
+    }
   };
   // cor sob as barras: a da seção que ocupa o centro da tela (ou o offwhite do campo da estrela); senão, o fundo da galeria
   const corDoFundo = (galeria: string) => {
@@ -827,6 +846,11 @@ if (camera && esfera && jujuImg && area && linhas) {
       if (arrasto.py < navAtual + 90) galAlvo = clamp(galAlvo - 12, 0, galMax);
       else if (arrasto.py > vh - 90) galAlvo = clamp(galAlvo + 12, 0, galMax);
       reordenarArrasto();
+    }
+    if (vInercia && ativos.size === 0 && modo === 'galeria' && !modalAberto()) {
+      rolarPor(vInercia * dt, vh * 0.8);
+      vInercia *= Math.exp(-dt / TAU_INERCIA);
+      if (Math.abs(vInercia) < 0.02) vInercia = 0;
     }
     galAtual += (galAlvo - galAtual) * (1 - Math.exp(-dt / TAU_GALERIA));
     rolagemAtual += (rolagem - rolagemAtual) * (1 - Math.exp(-dt / TAU_ROLAGEM)); // por tempo: igual em 30, 60 ou 120 Hz

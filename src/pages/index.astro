@@ -109,15 +109,17 @@ const projetosLista = await Promise.all(
       <!-- cavalo em dither, de fundo, em difference (a espiral áurea está guardada em scripts/cavalo.ts: para reativar, acrescente <canvas class="cavalo__aurea" data-aurea>) -->
       <canvas class="cavalo__canvas" data-cavalo role="img" aria-label="Cavalo correndo"></canvas>
       <div class="hero">
+        <div class="hero__texto">
         <p class="hero__trabalho" aria-hidden="true" data-tx="sobre" data-tx-atraso="320" style="--atraso:320ms">trabalho com</p>
         <div class="rotativa" data-rotativa tabindex="0">
-          <span class="sr-only">trabalho com capa de disco, identidade visual, flyer de evento, social media</span>
+          <span class="sr-only">trabalho com identidade visual, posts para redes, flyer de evento, desdobramentos gráficos</span>
           <span class="rotativa__itens" aria-hidden="true">
-            <span class="rotativa__item is-ativa" data-tx="rot">Capa de Disco</span>
-            <span class="rotativa__item" data-tx="rot">Identidade Visual</span>
+            <span class="rotativa__item is-ativa" data-tx="rot">Identidade Visual</span>
+            <span class="rotativa__item" data-tx="rot">Posts para Redes</span>
             <span class="rotativa__item" data-tx="rot">Flyer de Evento</span>
-            <span class="rotativa__item" data-tx="rot">Social Media</span>
+            <span class="rotativa__item" data-tx="rot">Desdobramentos Gráficos</span>
           </span>
+        </div>
         </div>
         <ul class="pilulas">
           <li class="pilula" style="--rot:-3deg"><span data-tx="sobre">5+ anos de atuação</span></li>
@@ -206,6 +208,7 @@ const projetosLista = await Promise.all(
   import '../scripts/experiencia.ts';
   import '../scripts/rotativa.ts';
   import '../scripts/editar-coisas.ts';
+  import '../scripts/peel.ts';
   import '../scripts/cavalo.ts';
   import '../scripts/gifs-projetos.ts';
 </script>
@@ -365,6 +368,28 @@ const projetosLista = await Promise.all(
     }
     .estrela.is-gif .palco .coisa:active {
       cursor: grabbing;
+    }
+  }
+  /* sticker peeling (scripts/peel.ts): só no mobile; o overlay .peel-ov herda posição/giro do adesivo e desenha a aba dobrada */
+  .peel-ov > * { display: none; }
+  .peel-ov { pointer-events: none !important; }
+  @media (max-width: 767px) {
+    img[style*='--peel-mask'] {
+      -webkit-mask-image: var(--peel-mask);
+      mask-image: var(--peel-mask);
+    }
+    .peel-ov > * { display: block; }
+    .peel__sombra { position: absolute; inset: 0; filter: drop-shadow(-2px -2px 3px rgba(0, 0, 0, 0.3)); }
+    .peel__aba {
+      position: absolute;
+      inset: 0;
+      transform-origin: 0 0;
+      -webkit-mask-size: 100% 100%;
+      mask-size: 100% 100%;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-composite: source-in;
+      mask-composite: intersect;
     }
   }
   /* editor das posições (mobile, /?editar): cada coisa pode ser arrastada */
@@ -660,10 +685,10 @@ const projetosLista = await Promise.all(
     .rod-seq__contato .contato-links__a { font-weight: var(--weight-medium); }
   }
   @media (max-width: 767px) {
-    .rod-seq { --mx: calc(var(--u) * var(--space-nav-edge-mobile)); }
+    .rod-seq { --mx: calc(var(--u) * var(--space-nav-edge-mobile)); height: 100vh; } /* mobile: exatamente a altura do viewport (sem o mínimo de 560px) */
     .rod-seq .so-mobile { display: inline; }
     /* mobile: WhatsApp e email mais acima que na web */
-    .rod-seq__contato { --whats-dy: 5px; --email-dy: -106px; --linkedin-dy: 15px; }
+    .rod-seq__contato { --whats-dy: 5px; --email-dy: -114px; --linkedin-dy: 15px; }
     .rod-seq__contato .contato-links__a { font-weight: var(--weight-semibold); }
     /* título: 20px, bold, em duas linhas, 20px mais para baixo */
     .rod-seq__tit { top: calc(var(--h-nav-atual) + 4px + 20px); font-size: calc(var(--tam-titulo) + 9px); font-weight: var(--weight-bold); }
@@ -828,7 +853,7 @@ const projetosLista = await Promise.all(
   /* palavra em rotação: os 4 itens empilhados na mesma célula reservam a largura do maior e a altura da linha (2 linhas se quebrar) */
   .rotativa {
     margin-top: 6px;
-    font-size: 9.6vw; /* o maior possível: "Identidade Visual" ocupa quase toda a largura útil */
+    font-size: 7vw; /* o maior possível: "Desdobramentos Gráficos" ocupa quase toda a largura útil */
     font-weight: var(--weight-semibold);
     line-height: 0.95;
     outline-offset: 6px;
@@ -856,8 +881,10 @@ const projetosLista = await Promise.all(
       --edge: var(--space-nav-edge-mobile);
     }
     .rotativa {
-      font-size: 15vw;
+      font-size: 10vw; /* "Desdobramentos" (palavra mais longa) precisa caber numa linha */
     }
+    .pilula { font-size: calc(11px * 1.3 * 0.85); } /* bullets 30% maiores no mobile, menos 15% (11px → ~12.2px; padding em em e texto acompanham) */
+    .pilula span.tx, .pilula span { word-spacing: 0.22em; } /* espaço entre palavras dos bullets: 0.12em → 0.22em (mobile) */
     .pilulas {
       margin-top: 42px !important;
     }
@@ -869,10 +896,19 @@ const projetosLista = await Promise.all(
       min-height: 0;
       padding-block: calc(100vw * 72 / 390);
     }
+    /* mobile: o hero "se desmancha" para o texto (em cima) e os bullets (embaixo) virarem itens da coluna, com o cavalo no meio */
     .sobre-seq .hero {
+      display: contents;
+    }
+    .sobre-seq .hero__texto {
+      order: 0;
+      width: 100%;
+      margin-bottom: 32px; /* distância texto → cavalo */
+    }
+    .sobre-seq .pilulas {
       order: 2;
-      width: fit-content;
-      max-width: 100%;
+      width: 100%;
+      margin: 18px 0 0 !important; /* cavalo → bullets: 32px da margem do cavalo + 18px */
     }
     .sobre-seq .rotativa {
       margin-top: 12px;
