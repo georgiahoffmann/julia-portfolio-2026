@@ -27,8 +27,23 @@ type Bloco = {
   total: number; // duração da entrada (ms), para só ativar a pressão depois dela
   ativo: boolean;
   timer: number;
+  visivel: boolean; // dentro (ou perto) do viewport: fora dele a pressão/pulso não precisa rodar
 };
 const blocos = new Map<HTMLElement, Bloco>();
+// só os blocos à vista animam: o pulso mexe no peso de cada letra a cada quadro (recálculo de estilo + reforma do texto),
+// e blocos fora da tela gastavam esse custo (e uma leitura de layout por bloco) à toa. O resultado visual é idêntico.
+const vistos = new Set<Element>();
+const observador = new IntersectionObserver(
+  (es) => {
+    for (const e of es) {
+      if (e.isIntersecting) vistos.add(e.target);
+      else vistos.delete(e.target);
+      const b = blocos.get(e.target as HTMLElement);
+      if (b) b.visivel = e.isIntersecting;
+    }
+  },
+  { rootMargin: '120px' },
+);
 let mx = -1e4;
 let my = -1e4;
 let ultimoMove = 0;
@@ -83,7 +98,8 @@ function preparar(el: HTMLElement) {
     l.peso = base;
     l.el.style.setProperty('--passo', `${passo}ms`);
   }
-  blocos.set(el, { el, base, letras, palavras, total: letras.length * passo + 800, ativo: false, timer: 0 });
+  blocos.set(el, { el, base, letras, palavras, total: letras.length * passo + 800, ativo: false, timer: 0, visivel: vistos.has(el) });
+  observador.observe(el);
 }
 
 /** libera as larguras fixas (antes de mudar o tamanho da fonte) */
@@ -110,25 +126,34 @@ export function medir() {
   document.documentElement.classList.remove('tx-medindo');
 }
 
+// o IntersectionObserver considera a geometria, não `visibility`/`opacity`: textos de seções escondidas (ex.: versos do GIF com a estrela invisível) seguiam animando
+const visivelDeFato = (el: HTMLElement) => (el.checkVisibility ? el.checkVisibility({ visibilityProperty: true, opacityProperty: true, checkVisibilityCSS: true } as CheckVisibilityOptions) : true);
+
+let par = false;
 function quadro(agora: number) {
   const parado = agora - ultimoMove > IDLE_PARADO;
+  par = !par; // o pulso em repouso (lento e suave) atualiza a cada 2 quadros (30 Hz): metade do custo de estilo/texto, sem diferença visível; a resposta ao mouse segue a 60 Hz
   // fase 1: só leituras (um retângulo por bloco); fase 2: só escritas. Sem leituras de layout por letra e sem vai-e-volta leitura/escrita.
-  const ativos: { b: Bloco; r: DOMRect }[] = [];
-  for (const b of blocos.values()) if (b.ativo) ativos.push({ b, r: b.el.getBoundingClientRect() });
+  // com o mouse parado o retângulo não é usado (só o pulso): sem leitura de layout, evita recalcular estilo/layout duas vezes por quadro
+  const ativos: { b: Bloco; r: DOMRect | null }[] = [];
+  for (const b of blocos.values()) if (b.ativo && b.visivel && visivelDeFato(b.el)) ativos.push({ b, r: parado ? null : b.el.getBoundingClientRect() });
   for (const { b, r } of ativos) {
-    const raio = Math.max(100, r.width * RAIO);
-    const perto = !parado && mx > r.left - raio && mx < r.right + raio && my > r.top - raio && my < r.bottom + raio;
+    const raio = r ? Math.max(100, r.width * RAIO) : 0;
+    const perto = !!r && !parado && mx > r.left - raio && mx < r.right + raio && my > r.top - raio && my < r.bottom + raio;
     const amp = (b.letras.length > 60 ? 0.14 : 0.32) * (PESO_MAX - b.base); // pulso mais discreto em texto longo
     b.letras.forEach((l, k) => {
       let alvo = b.base;
+      let sm = SMOOTHING;
       if (perto) {
-        const d = Math.hypot(mx - (r.left + l.cx), my - (r.top + l.cy));
+        const d = Math.hypot(mx - (r!.left + l.cx), my - (r!.top + l.cy));
         alvo = b.base + (PESO_MAX - b.base) * (1 - Math.min(1, d / raio)) ** 2;
       } else if (!reduzir) {
+        if (par) return; // pulso em repouso: só nos quadros pares
+        sm = SMOOTHING * SMOOTHING; // um passo a cada 2 quadros = dois passos de suavização, para o mesmo ritmo
         // idle "pulse": onda de peso percorrendo as letras
         alvo = b.base + amp * (0.5 + 0.5 * Math.sin((agora / 1000) * IDLE_VEL * 2.2 - k * 0.32));
       }
-      const novo = l.peso * SMOOTHING + alvo * (1 - SMOOTHING);
+      const novo = l.peso * sm + alvo * (1 - sm);
       if (Math.abs(novo - l.peso) > 0.05) {
         l.peso = novo;
         const t = clamp01((novo - b.base) / (PESO_MAX - b.base));

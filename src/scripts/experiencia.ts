@@ -21,6 +21,11 @@ import { paleta } from './paleta';
 const jujuImg = document.querySelector<HTMLElement>('[data-juju]');
 const area = document.querySelector<HTMLElement>('.page--canvas');
 const estrela = document.querySelector<HTMLElement>('[data-estrela]');
+// consumidores das variáveis da estrela (ver @property em index.astro): escritas direto neles, não no .estrela
+const estForma = estrela?.querySelector<HTMLElement>('.estrela__forma') ?? (estrela as HTMLElement);
+const estCampo = estrela?.querySelector<HTMLElement>('.estrela__campo') ?? (estrela as HTMLElement);
+const estPalco = estrela?.querySelector<HTMLElement>('.palco') ?? (estrela as HTMLElement);
+const estVersos = [...(estrela?.querySelectorAll<HTMLElement>('.verso') ?? [])];
 const mundo = document.querySelector<HTMLElement>('[data-mundo]');
 const secao = document.querySelector<HTMLElement>('.sobre-seq');
 type Cor = [number, number, number];
@@ -903,10 +908,12 @@ if (camera && esfera && jujuImg && area && linhas) {
     const gifV = inOut(tomarP);
     const campo = clamp((g - 0.9) / 0.1);
     if (estrela) {
-      sp(estrela, '--w', `${(wMin * (wMax / wMin) ** gE).toFixed(1)}px`);
-      sp(estrela, '--op', clamp(g / 0.06).toFixed(3));
-      sp(estrela, '--campo', campo.toFixed(3));
-      sp(estrela, '--gif', gifV.toFixed(4));
+      const gifS = gifV.toFixed(4);
+      sp(estForma, '--estrela-w', `${(wMin * (wMax / wMin) ** gE).toFixed(1)}px`);
+      sp(estForma, '--op', clamp(g / 0.06).toFixed(3));
+      sp(estCampo, '--campo', campo.toFixed(3));
+      sp(estPalco, '--gif', gifS);
+      for (const v of estVersos) sp(v, '--gif', gifS);
       estrela.classList.toggle('is-gif', gifV > 0.9);
       sp(estrela, 'visibility', g > 0.001 ? 'visible' : 'hidden');
     }

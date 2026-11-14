@@ -214,6 +214,12 @@ const projetosLista = await Promise.all(
 </script>
 
 <style is:global>
+  /* variáveis da estrela: registradas SEM herança e escritas direto em quem as usa (scripts/experiencia.ts).
+     Escritas no .estrela (herdadas), elas invalidavam o estilo de toda a subárvore (centenas de elementos) a cada quadro da rolagem. */
+  @property --estrela-w { syntax: '<length>'; inherits: false; initial-value: 0px; }
+  @property --op { syntax: '<number>'; inherits: false; initial-value: 0; }
+  @property --campo { syntax: '<number>'; inherits: false; initial-value: 0; }
+  @property --gif { syntax: '<number>'; inherits: false; initial-value: 0; }
   @property --fundo-vivo {
     syntax: '<color>';
     inherits: true;
@@ -242,7 +248,7 @@ const projetosLista = await Promise.all(
     overflow: hidden;
     pointer-events: none;
     visibility: hidden;
-    --w: 0px;
+    --estrela-w: 0px;
     --op: 0;
     --campo: 0;
     --gif: 0;
@@ -256,7 +262,7 @@ const projetosLista = await Promise.all(
     left: 50%;
     top: 50%;
     display: block;
-    width: var(--w); /* vetor redimensionado por layout (não por transform): sempre nítido */
+    width: var(--estrela-w); /* vetor redimensionado por layout (não por transform): sempre nítido */
     height: auto;
     aspect-ratio: 225.45 / 230.41;
     fill: var(--color-off-white);

@@ -124,8 +124,10 @@ if (cursor && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
   };
 
   // as seções se movem com a rolagem mesmo com o mouse parado: o modo é reavaliado a cada quadro enquanto o mouse está na janela
+  let q = 0;
   const acompanhar = () => {
-    if (mouse.dentro) {
+    // a cada 3 quadros (50 ms): evita 2-3 leituras de layout por quadro, que forçavam recalcular estilo/layout a cada frame; a troca de modo é imperceptivelmente mais tardia
+    if (mouse.dentro && ++q % 3 === 0) {
       const novo = waiting() ? 'estrela' : calcularModo();
       if (novo !== modo) {
         modo = novo;
