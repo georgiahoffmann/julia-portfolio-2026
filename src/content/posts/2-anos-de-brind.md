@@ -1,7 +1,10 @@
 ---
 title: "2 anos de Brind"
-tipo: pendente
-desktop: { x: 776.0, y: 1232.0, w: 218.0, h: 277.0 }
-mobile: { x: 225.0, y: 740.0, w: 81.4, h: 103.0 }
-ordem: 15
+tipo: imagem
+image: ../../assets/posts/2-anos-de-brind.jpg
+alt: "2 anos de Brind"
+desktop: { x: 0, y: 0, w: 225.8, h: 300 }
+mobile: { x: 0, y: 0, w: 75.3, h: 100 }
+ordem: 13
+ordemMobile: 101
 ---

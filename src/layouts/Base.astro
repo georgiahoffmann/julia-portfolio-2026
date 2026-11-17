@@ -56,6 +56,8 @@ const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : un
     <Cursor />
     <slot name="abertura" />
     <Nav />
+    {canvas && <div class="barra-cor barra-cor--topo" aria-hidden="true" />}
+    {canvas && <div class="barra-cor barra-cor--base" aria-hidden="true" />}
     <main class:list={['page', { 'page--canvas': canvas }]} style={canvas ? undefined : `--page-h:${height}; --page-mh:${mobileHeight};`} data-anim="page">
       <slot />
     </main>

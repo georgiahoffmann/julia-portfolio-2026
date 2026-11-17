@@ -1,0 +1,934 @@
+---
+// Página de teste (não faz parte do site): editor de grid da seção "foto + texto" do sobre.
+// Dois layouts independentes (web e mobile). Dá para mover/redimensionar fotos e textos nas células do grid,
+// editar o texto de cada bloco e posicionar o adesivo (coisas-12) livremente. O resultado sai em JSON.
+// Só existe no `npm run dev`: no site publicado a página redireciona para a home.
+import '../styles/global.css';
+import foto8321 from '../assets/sobre/foto-8321.jpg';
+import foto8322 from '../assets/sobre/foto-8322.jpg';
+import foto8323 from '../assets/sobre/foto-8323.jpg';
+import fotoSobre from '../assets/sobre/foto-sobre.jpeg';
+import coisa12 from '../assets/sobre/coisas-12.png';
+
+if (import.meta.env.PROD) return Astro.redirect('/');
+const dados = {
+  fotoA: foto8323.src,
+  fotoB: foto8322.src,
+  fotoC: fotoSobre.src,
+  fotoD: foto8321.src,
+  sticker: { src: coisa12.src, ar: coisa12.width / coisa12.height },
+};
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Teste de grid</title>
+  </head>
+  <body class="tg">
+    <script type="application/json" id="dados" set:html={JSON.stringify(dados)} />
+    <aside class="tg__painel" aria-label="Controles">
+      <h1>Grid da seção "sobre"</h1>
+
+      <div class="tg__modo" role="group" aria-label="Layout">
+        <button type="button" id="m-web" aria-pressed="true">Web</button>
+        <button type="button" id="m-mobile" aria-pressed="false">Mobile</button>
+      </div>
+
+      <fieldset>
+        <legend>Quadro</legend>
+        <label>Tela
+          <select id="preset"></select>
+        </label>
+        <label class="tg__check"><input type="checkbox" id="mostrarGrid" checked /> Mostrar grid</label>
+        <label class="tg__check"><input type="checkbox" id="mostrarNumeros" checked /> Numerar colunas e linhas</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Grid</legend>
+        <div class="tg__duas">
+          <label>Colunas <input type="number" id="cols" min="1" max="24" /></label>
+          <label>Linhas <input type="number" id="rows" min="1" max="24" /></label>
+          <label>Distância entre colunas (px) <input type="number" id="gx" min="0" max="200" /></label>
+          <label>Distância entre linhas (px) <input type="number" id="gy" min="0" max="200" /></label>
+          <label>Margem lateral (px) <input type="number" id="mx" min="0" max="400" /></label>
+          <label>Margem vertical (px) <input type="number" id="my" min="0" max="400" /></label>
+        </div>
+        <p class="tg__dica">Web: 12 × 10, distância 24, margens 52 / 68 (o que está no site hoje).</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Elementos</legend>
+        <ul id="lista" class="tg__lista"></ul>
+      </fieldset>
+
+      <fieldset id="inspetor">
+        <legend>Selecionado: <span id="selNome">—</span></legend>
+        <div id="blocoGrid">
+          <div class="tg__duas">
+            <label>Coluna inicial <input type="number" id="i-col" min="1" /></label>
+            <label>Linha inicial <input type="number" id="i-row" min="1" /></label>
+            <label>Colunas ocupadas <input type="number" id="i-cs" min="1" /></label>
+            <label>Linhas ocupadas <input type="number" id="i-rs" min="1" /></label>
+          </div>
+          <div class="tg__sangra">
+            <span>Sangrar até a borda:</span>
+            <label><input type="checkbox" id="b-l" /> esq.</label>
+            <label><input type="checkbox" id="b-r" /> dir.</label>
+            <label><input type="checkbox" id="b-t" /> topo</label>
+            <label><input type="checkbox" id="b-b" /> base</label>
+          </div>
+        </div>
+        <div id="alinhaTexto">
+          <label>Texto
+            <textarea id="i-txt" rows="5"></textarea>
+          </label>
+          <div class="tg__duas">
+            <label>Tamanho (px) <input type="number" id="i-fs" min="8" max="300" /></label>
+            <label>Peso
+              <select id="i-peso">
+                <option value="500">medium</option>
+                <option value="600">semibold</option>
+                <option value="700">bold</option>
+              </select>
+            </label>
+            <label>Alinhar na vertical
+              <select id="i-va">
+                <option value="start">topo</option>
+                <option value="center">centro</option>
+                <option value="end">base</option>
+              </select>
+            </label>
+            <label>Cor do texto
+              <select id="i-cor">
+                <option value="red">vermelho</option>
+                <option value="black">preto</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div id="blocoSticker" class="tg__duas">
+          <label>X (% da largura) <input type="number" id="s-x" step="0.5" /></label>
+          <label>Y (% da altura) <input type="number" id="s-y" step="0.5" /></label>
+          <label>Largura (% da largura) <input type="number" id="s-w" step="0.5" min="2" max="100" /></label>
+          <label>Giro (graus) <input type="number" id="s-rot" step="0.5" /></label>
+        </div>
+        <p class="tg__dica">Arraste para mover; puxe o canto inferior direito para redimensionar. Setas movem 1 célula (o adesivo, 0,5%); Shift + setas redimensionam.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Resultado (me mande isto: web e mobile)</legend>
+        <textarea id="saida" readonly rows="12"></textarea>
+        <div class="tg__duas">
+          <button type="button" id="copiar">Copiar</button>
+          <button type="button" id="resetar">Restaurar padrão</button>
+        </div>
+      </fieldset>
+    </aside>
+
+    <main class="tg__palco" id="palco">
+      <div class="tg__caixa" id="caixa"><div class="tg__moldura" id="moldura"></div></div>
+    </main>
+  </body>
+</html>
+
+<script>
+  type Item = {
+    id: string;
+    tipo: 'img' | 'texto' | 'sticker';
+    nome: string;
+    src?: string;
+    col: number;
+    row: number;
+    cs: number;
+    rs: number;
+    bl: boolean;
+    br: boolean;
+    bt: boolean;
+    bb: boolean;
+    visivel: boolean;
+    // texto
+    txt?: string;
+    fs?: number;
+    peso?: number;
+    va?: 'start' | 'center' | 'end';
+    cor?: 'red' | 'black';
+    // adesivo (posição livre, em % do quadro)
+    x?: number;
+    y?: number;
+    w?: number;
+    rot?: number;
+    ar?: number;
+  };
+  type Layout = { preset: string; cols: number; rows: number; gx: number; gy: number; mx: number; my: number; items: Item[] };
+  type Estado = { modo: 'web' | 'mobile'; grid: boolean; nums: boolean; sel: string; web: Layout; mobile: Layout };
+
+  const D = JSON.parse(document.getElementById('dados')!.textContent!) as { fotoA: string; fotoB: string; fotoC: string; fotoD: string; sticker: { src: string; ar: number } };
+  const T1 = 'Comecei a trabalhar com design aos 15 e nunca consegui largar o vício';
+  const T2 = 'Sou de Porto Alegre e estudo Design na PUCRS';
+  const T3 = 'Hoje sou Designer JR no Studio Pirá e faço freelas, de social media a identidade visual e capas de disco.';
+  const PRESETS = {
+    web: [['1440x900', 'Desktop 1440 × 900'], ['1920x1080', 'Desktop 1920 × 1080'], ['1280x800', 'Notebook 1280 × 800']],
+    mobile: [['390x844', 'Mobile 390 × 844'], ['390x1560', 'Mobile 390 × 1560 (seção inteira)']],
+  } as const;
+  const f = (id: string, nome: string, src: string, col: number, row: number, cs: number, rs: number, sg: Partial<Item> = {}): Item => ({ id, tipo: 'img', nome, src, col, row, cs, rs, bl: false, br: false, bt: false, bb: false, visivel: true, ...sg });
+  const t = (id: string, nome: string, txt: string, col: number, row: number, cs: number, rs: number, fs: number, peso: number, va: Item['va']): Item => ({ id, tipo: 'texto', nome, txt, fs, peso, va, cor: 'red', col, row, cs, rs, bl: false, br: false, bt: false, bb: false, visivel: true });
+  const s = (x: number, y: number, w: number): Item => ({ id: 'sticker', tipo: 'sticker', nome: 'coisas-12 (adesivo)', src: D.sticker.src, ar: D.sticker.ar, x, y, w, rot: -4, col: 1, row: 1, cs: 1, rs: 1, bl: false, br: false, bt: false, bb: false, visivel: true });
+
+  // padrão = a diagramação que está no site hoje
+  const PADRAO = (): Estado => ({
+    modo: 'web',
+    grid: true,
+    nums: true,
+    sel: 'sticker',
+    web: {
+      preset: '1440x900',
+      cols: 12,
+      rows: 10,
+      gx: 24,
+      gy: 24,
+      mx: 52,
+      my: 68,
+      items: [
+        f('fotoA', 'Foto 8323', D.fotoA, 1, 1, 4, 10, { bl: true, bt: true, bb: true }),
+        t('texto1', 'Texto principal', T1, 5, 1, 3, 4, 64, 600, 'center'),
+        t('texto2', 'Texto pequeno (topo)', T2, 11, 1, 2, 4, 21, 500, 'start'),
+        t('texto3', 'Texto de baixo', T3, 8, 7, 3, 4, 28, 500, 'end'),
+        f('fotoB', 'Foto 8322', D.fotoB, 5, 5, 3, 6),
+        f('fotoC', 'Foto sobre', D.fotoC, 8, 1, 3, 6),
+        f('fotoD', 'Foto 8321', D.fotoD, 11, 5, 2, 4),
+        s(60, 64, 12),
+      ],
+    },
+    mobile: {
+      preset: '390x1560',
+      cols: 4,
+      rows: 12,
+      gx: 12,
+      gy: 12,
+      mx: 20,
+      my: 72,
+      items: [
+        t('texto1', 'Texto principal', T1, 1, 1, 4, 2, 40, 600, 'center'),
+        t('texto2', 'Texto pequeno (topo)', T2, 1, 3, 4, 2, 14, 500, 'start'),
+        t('texto3', 'Texto de baixo', T3, 1, 5, 4, 2, 18, 500, 'end'),
+        f('fotoA', 'Foto 8323', D.fotoA, 1, 7, 2, 3, { bl: true }),
+        f('fotoB', 'Foto 8322', D.fotoB, 3, 7, 2, 3),
+        f('fotoC', 'Foto sobre', D.fotoC, 1, 10, 2, 3),
+        f('fotoD', 'Foto 8321', D.fotoD, 3, 10, 2, 3),
+        s(62, 24, 30),
+      ],
+    },
+  });
+
+  const CHAVE = 'teste-grid-sobre-v2';
+  let e: Estado = PADRAO();
+  try {
+    const salvo = localStorage.getItem(CHAVE);
+    if (salvo) {
+      const p = JSON.parse(salvo) as Estado;
+      // o adesivo e as imagens vêm sempre do site; o resto (posições, textos) vem do salvo
+      for (const m of ['web', 'mobile'] as const) {
+        if (!p[m]) continue;
+        for (const it of p[m].items) {
+          const base = e[m].items.find((i) => i.id === it.id);
+          if (base) it.src = base.src;
+        }
+        e[m] = { ...e[m], ...p[m] };
+      }
+      e = { ...e, modo: p.modo ?? 'web', grid: p.grid ?? true, nums: p.nums ?? true, sel: p.sel ?? e.sel };
+    }
+  } catch {}
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const moldura = $('moldura');
+  const palco = $('palco');
+  const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+  const L = () => e[e.modo];
+  let escala = 1;
+
+  const dims = () => {
+    const [W, H] = L().preset.split('x').map(Number);
+    return { W, H };
+  };
+  const geo = () => {
+    const l = L();
+    const { W, H } = dims();
+    const cw = (W - 2 * l.mx - (l.cols - 1) * l.gx) / l.cols;
+    const rh = (H - 2 * l.my - (l.rows - 1) * l.gy) / l.rows;
+    return { W, H, cw, rh };
+  };
+  const retangulo = (it: Item) => {
+    const l = L();
+    const { W, H, cw, rh } = geo();
+    if (it.tipo === 'sticker') {
+      const w = (it.w! / 100) * W;
+      return { x: (it.x! / 100) * W, y: (it.y! / 100) * H, w, h: w / (it.ar ?? 1) };
+    }
+    let x = l.mx + (it.col - 1) * (cw + l.gx);
+    let y = l.my + (it.row - 1) * (rh + l.gy);
+    let w = it.cs * cw + (it.cs - 1) * l.gx;
+    let h = it.rs * rh + (it.rs - 1) * l.gy;
+    if (it.bl) {
+      w += x;
+      x = 0;
+    }
+    if (it.br) w = W - x;
+    if (it.bt) {
+      h += y;
+      y = 0;
+    }
+    if (it.bb) h = H - y;
+    return { x, y, w, h };
+  };
+  const base = (it: Item) => {
+    // retângulo sem sangria (as posições do grid), usado ao arrastar
+    const l = L();
+    const { cw, rh } = geo();
+    return { x: l.mx + (it.col - 1) * (cw + l.gx), y: l.my + (it.row - 1) * (rh + l.gy), w: it.cs * cw + (it.cs - 1) * l.gx, h: it.rs * rh + (it.rs - 1) * l.gy };
+  };
+
+  const salvar = () => {
+    try {
+      localStorage.setItem(CHAVE, JSON.stringify(e));
+    } catch {}
+  };
+
+  const ajustarEscala = () => {
+    const { W, H } = dims();
+    const livreW = palco.clientWidth - 48;
+    const livreH = palco.clientHeight - 48;
+    escala = Math.min(1, livreW / W, livreH / H);
+    moldura.style.width = `${W}px`;
+    moldura.style.height = `${H}px`;
+    moldura.style.transform = `scale(${escala})`;
+    const cx = $('caixa');
+    cx.style.width = `${W * escala}px`;
+    cx.style.height = `${H * escala}px`;
+  };
+
+  const render = () => {
+    ajustarEscala();
+    const l = L();
+    const { W, H, cw, rh } = geo();
+    moldura.innerHTML = '';
+    if (e.grid) {
+      const g = document.createElement('div');
+      g.className = 'tg__grid';
+      for (let c = 0; c < l.cols; c++) {
+        const d = document.createElement('div');
+        d.className = 'tg__col';
+        d.style.cssText = `left:${l.mx + c * (cw + l.gx)}px;width:${cw}px;top:${l.my}px;height:${H - 2 * l.my}px`;
+        if (e.nums) d.dataset.n = String(c + 1);
+        g.append(d);
+      }
+      for (let r = 0; r < l.rows; r++) {
+        const d = document.createElement('div');
+        d.className = 'tg__lin';
+        d.style.cssText = `top:${l.my + r * (rh + l.gy)}px;height:${rh}px;left:${l.mx}px;width:${W - 2 * l.mx}px`;
+        if (e.nums) d.dataset.n = String(r + 1);
+        g.append(d);
+      }
+      moldura.append(g);
+    }
+    for (const it of l.items) {
+      if (!it.visivel) continue;
+      const r = retangulo(it);
+      const el = document.createElement('div');
+      el.className = `tg__item tg__item--${it.tipo}${e.sel === it.id ? ' is-sel' : ''}`;
+      el.dataset.id = it.id;
+      el.style.cssText = `left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px`;
+      if (it.tipo === 'sticker') {
+        el.style.transform = `rotate(${it.rot ?? 0}deg)`;
+        el.style.zIndex = '4';
+      }
+      if (it.tipo === 'img' || it.tipo === 'sticker') {
+        const im = document.createElement('img');
+        im.src = it.src!;
+        im.alt = '';
+        im.draggable = false;
+        el.append(im);
+      } else {
+        el.style.alignItems = it.va === 'start' ? 'flex-start' : it.va === 'end' ? 'flex-end' : 'center';
+        const p = document.createElement('p');
+        p.textContent = it.txt ?? '';
+        p.style.color = it.cor === 'black' ? 'var(--color-black)' : 'var(--color-red)';
+        p.style.fontSize = `${it.fs ?? 16}px`;
+        p.style.fontWeight = String(it.peso ?? 700);
+        el.append(p);
+      }
+      const rot = document.createElement('span');
+      rot.className = 'tg__rot';
+      rot.textContent = it.tipo === 'sticker' ? `${it.nome} · x${(it.x ?? 0).toFixed(1)}% y${(it.y ?? 0).toFixed(1)}% · ${(it.w ?? 0).toFixed(1)}%` : `${it.nome} · c${it.col} l${it.row} · ${it.cs}×${it.rs}`;
+      el.append(rot);
+      const h = document.createElement('i');
+      h.className = 'tg__alca';
+      h.title = 'Redimensionar';
+      el.append(h);
+      moldura.append(el);
+    }
+    painel();
+    saida();
+    salvar();
+  };
+
+  const sel = () => L().items.find((i) => i.id === e.sel);
+
+  const painel = () => {
+    const l = L();
+    $('m-web').setAttribute('aria-pressed', String(e.modo === 'web'));
+    $('m-mobile').setAttribute('aria-pressed', String(e.modo === 'mobile'));
+    const ps = $<HTMLSelectElement>('preset');
+    ps.innerHTML = PRESETS[e.modo].map(([v, n]) => `<option value="${v}">${n}</option>`).join('');
+    ps.value = l.preset;
+    $<HTMLInputElement>('cols').value = String(l.cols);
+    $<HTMLInputElement>('rows').value = String(l.rows);
+    $<HTMLInputElement>('gx').value = String(l.gx);
+    $<HTMLInputElement>('gy').value = String(l.gy);
+    $<HTMLInputElement>('mx').value = String(l.mx);
+    $<HTMLInputElement>('my').value = String(l.my);
+    $<HTMLInputElement>('mostrarGrid').checked = e.grid;
+    $<HTMLInputElement>('mostrarNumeros').checked = e.nums;
+    const lista = $('lista');
+    lista.innerHTML = '';
+    for (const it of l.items) {
+      const li = document.createElement('li');
+      li.className = e.sel === it.id ? 'is-sel' : '';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = it.visivel;
+      cb.addEventListener('change', () => {
+        it.visivel = cb.checked;
+        if (cb.checked) e.sel = it.id;
+        render();
+      });
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = it.nome;
+      b.addEventListener('click', () => {
+        e.sel = it.id;
+        render();
+      });
+      li.append(cb, b);
+      lista.append(li);
+    }
+    const sl = sel();
+    $('selNome').textContent = sl ? sl.nome : '—';
+    if (sl) {
+      $('blocoGrid').style.display = sl.tipo === 'sticker' ? 'none' : '';
+      $('alinhaTexto').style.display = sl.tipo === 'texto' ? '' : 'none';
+      $('blocoSticker').style.display = sl.tipo === 'sticker' ? '' : 'none';
+      $<HTMLInputElement>('i-col').value = String(sl.col);
+      $<HTMLInputElement>('i-row').value = String(sl.row);
+      $<HTMLInputElement>('i-cs').value = String(sl.cs);
+      $<HTMLInputElement>('i-rs').value = String(sl.rs);
+      $<HTMLInputElement>('b-l').checked = sl.bl;
+      $<HTMLInputElement>('b-r').checked = sl.br;
+      $<HTMLInputElement>('b-t').checked = sl.bt;
+      $<HTMLInputElement>('b-b').checked = sl.bb;
+      if (sl.tipo === 'texto') {
+        const tx = $<HTMLTextAreaElement>('i-txt');
+        if (document.activeElement !== tx) tx.value = sl.txt ?? '';
+        $<HTMLInputElement>('i-fs').value = String(sl.fs ?? 16);
+        $<HTMLSelectElement>('i-peso').value = String(sl.peso ?? 700);
+        $<HTMLSelectElement>('i-va').value = sl.va ?? 'center';
+        $<HTMLSelectElement>('i-cor').value = sl.cor ?? 'red';
+      }
+      if (sl.tipo === 'sticker') {
+        $<HTMLInputElement>('s-x').value = String(+(sl.x ?? 0).toFixed(1));
+        $<HTMLInputElement>('s-y').value = String(+(sl.y ?? 0).toFixed(1));
+        $<HTMLInputElement>('s-w').value = String(+(sl.w ?? 0).toFixed(1));
+        $<HTMLInputElement>('s-rot').value = String(sl.rot ?? 0);
+      }
+    }
+  };
+
+  const saidaDe = (l: Layout) => {
+    const [W, H] = l.preset.split('x').map(Number);
+    const cw = (W - 2 * l.mx - (l.cols - 1) * l.gx) / l.cols;
+    const rh = (H - 2 * l.my - (l.rows - 1) * l.gy) / l.rows;
+    return {
+      quadro: l.preset,
+      grid: { colunas: l.cols, linhas: l.rows, distanciaColunas: l.gx, distanciaLinhas: l.gy, margemLateral: l.mx, margemVertical: l.my, larguraColuna: +cw.toFixed(2), alturaLinha: +rh.toFixed(2) },
+      elementos: l.items
+        .filter((i) => i.visivel)
+        .map((i) =>
+          i.tipo === 'sticker'
+            ? { nome: i.nome, xPct: +(i.x ?? 0).toFixed(1), yPct: +(i.y ?? 0).toFixed(1), larguraPct: +(i.w ?? 0).toFixed(1), giroGraus: i.rot ?? 0 }
+            : {
+                nome: i.nome,
+                colunaInicial: i.col,
+                linhaInicial: i.row,
+                colunasOcupadas: i.cs,
+                linhasOcupadas: i.rs,
+                sangra: [i.bl && 'esquerda', i.br && 'direita', i.bt && 'topo', i.bb && 'base'].filter(Boolean),
+                ...(i.tipo === 'texto' ? { texto: i.txt, tamanhoPx: i.fs, peso: i.peso, alinhamentoVertical: i.va, cor: i.cor } : {}),
+              },
+        ),
+    };
+  };
+  const saida = () => {
+    $<HTMLTextAreaElement>('saida').value = JSON.stringify({ web: saidaDe(e.web), mobile: saidaDe(e.mobile) }, null, 2);
+  };
+
+  // ---- layout (web / mobile)
+  $('m-web').addEventListener('click', () => {
+    e.modo = 'web';
+    render();
+  });
+  $('m-mobile').addEventListener('click', () => {
+    e.modo = 'mobile';
+    render();
+  });
+
+  // ---- controles do grid
+  const num = (id: string, chave: 'cols' | 'rows' | 'gx' | 'gy' | 'mx' | 'my') =>
+    $<HTMLInputElement>(id).addEventListener('input', (ev) => {
+      const l = L();
+      const v = Number((ev.target as HTMLInputElement).value);
+      if (Number.isNaN(v)) return;
+      l[chave] = chave === 'cols' || chave === 'rows' ? clamp(Math.round(v), 1, 24) : Math.max(0, v);
+      for (const it of l.items) {
+        if (it.tipo === 'sticker') continue;
+        it.col = clamp(it.col, 1, l.cols);
+        it.row = clamp(it.row, 1, l.rows);
+        it.cs = clamp(it.cs, 1, l.cols - it.col + 1);
+        it.rs = clamp(it.rs, 1, l.rows - it.row + 1);
+      }
+      render();
+    });
+  num('cols', 'cols');
+  num('rows', 'rows');
+  num('gx', 'gx');
+  num('gy', 'gy');
+  num('mx', 'mx');
+  num('my', 'my');
+  $<HTMLSelectElement>('preset').addEventListener('change', (ev) => {
+    L().preset = (ev.target as HTMLSelectElement).value;
+    render();
+  });
+  $<HTMLInputElement>('mostrarGrid').addEventListener('change', (ev) => {
+    e.grid = (ev.target as HTMLInputElement).checked;
+    render();
+  });
+  $<HTMLInputElement>('mostrarNumeros').addEventListener('change', (ev) => {
+    e.nums = (ev.target as HTMLInputElement).checked;
+    render();
+  });
+
+  // ---- inspetor
+  const ins = (id: string, chave: 'col' | 'row' | 'cs' | 'rs') =>
+    $<HTMLInputElement>(id).addEventListener('input', (ev) => {
+      const l = L();
+      const sl = sel();
+      const v = Number((ev.target as HTMLInputElement).value);
+      if (!sl || Number.isNaN(v)) return;
+      sl[chave] = Math.max(1, Math.round(v));
+      sl.col = clamp(sl.col, 1, l.cols);
+      sl.row = clamp(sl.row, 1, l.rows);
+      sl.cs = clamp(sl.cs, 1, l.cols - sl.col + 1);
+      sl.rs = clamp(sl.rs, 1, l.rows - sl.row + 1);
+      render();
+    });
+  ins('i-col', 'col');
+  ins('i-row', 'row');
+  ins('i-cs', 'cs');
+  ins('i-rs', 'rs');
+  const sangra = (id: string, chave: 'bl' | 'br' | 'bt' | 'bb') =>
+    $<HTMLInputElement>(id).addEventListener('change', (ev) => {
+      const sl = sel();
+      if (!sl) return;
+      sl[chave] = (ev.target as HTMLInputElement).checked;
+      render();
+    });
+  sangra('b-l', 'bl');
+  sangra('b-r', 'br');
+  sangra('b-t', 'bt');
+  sangra('b-b', 'bb');
+  $<HTMLTextAreaElement>('i-txt').addEventListener('input', (ev) => {
+    const sl = sel();
+    if (sl) sl.txt = (ev.target as HTMLTextAreaElement).value;
+    render();
+  });
+  $<HTMLInputElement>('i-fs').addEventListener('input', (ev) => {
+    const sl = sel();
+    const v = Number((ev.target as HTMLInputElement).value);
+    if (sl && v > 0) sl.fs = v;
+    render();
+  });
+  $<HTMLSelectElement>('i-peso').addEventListener('change', (ev) => {
+    const sl = sel();
+    if (sl) sl.peso = Number((ev.target as HTMLSelectElement).value);
+    render();
+  });
+  $<HTMLSelectElement>('i-va').addEventListener('change', (ev) => {
+    const sl = sel();
+    if (sl) sl.va = (ev.target as HTMLSelectElement).value as Item['va'];
+    render();
+  });
+  $<HTMLSelectElement>('i-cor').addEventListener('change', (ev) => {
+    const sl = sel();
+    if (sl) sl.cor = (ev.target as HTMLSelectElement).value as Item['cor'];
+    render();
+  });
+  const stk = (id: string, chave: 'x' | 'y' | 'w' | 'rot') =>
+    $<HTMLInputElement>(id).addEventListener('input', (ev) => {
+      const sl = sel();
+      const v = Number((ev.target as HTMLInputElement).value);
+      if (!sl || Number.isNaN(v)) return;
+      sl[chave] = chave === 'w' ? clamp(v, 2, 100) : v;
+      render();
+    });
+  stk('s-x', 'x');
+  stk('s-y', 'y');
+  stk('s-w', 'w');
+  stk('s-rot', 'rot');
+
+  // ---- arrastar e redimensionar (fotos e textos encaixam nas células; o adesivo é livre)
+  moldura.addEventListener('pointerdown', (ev) => {
+    const alvo = (ev.target as HTMLElement).closest<HTMLElement>('.tg__item');
+    if (!alvo) return;
+    const l = L();
+    const it = l.items.find((i) => i.id === alvo.dataset.id);
+    if (!it) return;
+    e.sel = it.id;
+    const redim = (ev.target as HTMLElement).classList.contains('tg__alca');
+    const ini = { x: ev.clientX, y: ev.clientY, col: it.col, row: it.row, cs: it.cs, rs: it.rs, r: base(it), sx: it.x ?? 0, sy: it.y ?? 0, sw: it.w ?? 10 };
+    const { W, H, cw, rh } = geo();
+    alvo.setPointerCapture(ev.pointerId);
+    const mover = (m: PointerEvent) => {
+      const dx = (m.clientX - ini.x) / escala;
+      const dy = (m.clientY - ini.y) / escala;
+      if (it.tipo === 'sticker') {
+        if (redim) it.w = clamp(ini.sw + (dx / W) * 100, 2, 100);
+        else {
+          it.x = ini.sx + (dx / W) * 100;
+          it.y = ini.sy + (dy / H) * 100;
+        }
+      } else if (redim) {
+        it.cs = clamp(Math.round((ini.r.w + dx + l.gx) / (cw + l.gx)), 1, l.cols - it.col + 1);
+        it.rs = clamp(Math.round((ini.r.h + dy + l.gy) / (rh + l.gy)), 1, l.rows - it.row + 1);
+      } else {
+        it.col = clamp(Math.round((ini.r.x + dx - l.mx) / (cw + l.gx)) + 1, 1, l.cols - it.cs + 1);
+        it.row = clamp(Math.round((ini.r.y + dy - l.my) / (rh + l.gy)) + 1, 1, l.rows - it.rs + 1);
+      }
+      render();
+      // o elemento é recriado em cada render: recaptura o ponteiro no novo
+      const novo = moldura.querySelector<HTMLElement>(`[data-id="${it.id}"]`);
+      if (novo && !novo.hasPointerCapture(m.pointerId)) novo.setPointerCapture(m.pointerId);
+    };
+    const soltar = () => {
+      moldura.removeEventListener('pointermove', mover);
+      moldura.removeEventListener('pointerup', soltar);
+      moldura.removeEventListener('pointercancel', soltar);
+    };
+    moldura.addEventListener('pointermove', mover);
+    moldura.addEventListener('pointerup', soltar);
+    moldura.addEventListener('pointercancel', soltar);
+    render();
+  });
+
+  addEventListener('keydown', (ev) => {
+    if ((ev.target as HTMLElement).closest('input, select, textarea')) return;
+    const l = L();
+    const sl = sel();
+    if (!sl) return;
+    const d = ({ ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] } as Record<string, number[]>)[ev.key];
+    if (!d) return;
+    ev.preventDefault();
+    if (sl.tipo === 'sticker') {
+      if (ev.shiftKey) sl.w = clamp((sl.w ?? 10) + d[0] * 0.5, 2, 100);
+      else {
+        sl.x = (sl.x ?? 0) + d[0] * 0.5;
+        sl.y = (sl.y ?? 0) + d[1] * 0.5;
+      }
+    } else if (ev.shiftKey) {
+      sl.cs = clamp(sl.cs + d[0], 1, l.cols - sl.col + 1);
+      sl.rs = clamp(sl.rs + d[1], 1, l.rows - sl.row + 1);
+    } else {
+      sl.col = clamp(sl.col + d[0], 1, l.cols - sl.cs + 1);
+      sl.row = clamp(sl.row + d[1], 1, l.rows - sl.rs + 1);
+    }
+    render();
+  });
+
+  $('copiar').addEventListener('click', async () => {
+    const ta = $<HTMLTextAreaElement>('saida');
+    try {
+      await navigator.clipboard.writeText(ta.value);
+      $('copiar').textContent = 'Copiado!';
+    } catch {
+      ta.select();
+      document.execCommand('copy');
+      $('copiar').textContent = 'Copiado!';
+    }
+    setTimeout(() => ($('copiar').textContent = 'Copiar'), 1500);
+  });
+  $('resetar').addEventListener('click', () => {
+    e = PADRAO();
+    render();
+  });
+  addEventListener('resize', render);
+  render();
+</script>
+
+<style is:global>
+  body.tg {
+    --cursor-default: auto;
+    --cursor-link: pointer;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    height: 100vh;
+    margin: 0;
+    background: #2a2626;
+    color: #ece8e0;
+    font-family: var(--font-body);
+    font-size: 12px;
+    cursor: auto;
+    overflow: hidden;
+  }
+  .tg a,
+  .tg button,
+  .tg select,
+  .tg label {
+    cursor: pointer;
+  }
+  .tg__painel {
+    overflow-y: auto;
+    padding: 16px;
+    background: #1d1a1a;
+    border-right: 1px solid #443e3e;
+  }
+  .tg__painel h1 {
+    margin: 0 0 12px;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .tg__painel fieldset {
+    margin: 0 0 12px;
+    padding: 10px;
+    border: 1px solid #443e3e;
+    border-radius: 6px;
+  }
+  .tg__painel legend {
+    padding: 0 6px;
+    font-weight: 700;
+  }
+  .tg__painel label {
+    display: grid;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  .tg__duas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 10px;
+  }
+  .tg__check,
+  .tg__sangra label {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+  }
+  .tg__sangra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    margin-bottom: 8px;
+  }
+  .tg__sangra span {
+    width: 100%;
+  }
+  .tg__painel input[type='number'],
+  .tg__painel select,
+  .tg__painel textarea,
+  .tg__painel button {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #5a5252;
+    border-radius: 4px;
+    background: #2a2626;
+    color: inherit;
+    font: inherit;
+  }
+  .tg__painel textarea {
+    margin-bottom: 8px;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+  }
+  .tg__painel button:hover {
+    background: #3a3434;
+  }
+  .tg__dica {
+    margin: 4px 0 0;
+    color: #a29a92;
+    line-height: 1.3;
+  }
+  .tg__lista {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tg__lista li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+  .tg__lista li.is-sel {
+    background: #3a3434;
+  }
+  .tg__lista button {
+    text-align: left;
+  }
+  .tg__palco {
+    display: grid;
+    place-items: center;
+    overflow: auto;
+    padding: 24px;
+  }
+  .tg__palco::before {
+    content: none;
+  }
+  /* a moldura é escalada com transform; o contêiner abaixo reserva o tamanho já escalado */
+  .tg__caixa {
+    position: relative;
+    flex: none;
+  }
+  .tg__moldura {
+    flex: none;
+    transform-origin: 0 0;
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: var(--color-off-white);
+    box-shadow: 0 0 0 1px #000, 0 12px 40px rgb(0 0 0 / 40%);
+    overflow: hidden;
+    user-select: none;
+    touch-action: none;
+  }
+  .tg__grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .tg__col,
+  .tg__lin {
+    position: absolute;
+  }
+  .tg__col {
+    background: rgb(255 60 60 / 10%);
+    outline: 1px solid rgb(255 60 60 / 35%);
+  }
+  .tg__lin {
+    background: rgb(40 120 255 / 7%);
+    outline: 1px solid rgb(40 120 255 / 30%);
+  }
+  .tg__col::before,
+  .tg__lin::before {
+    content: attr(data-n);
+    position: absolute;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .tg__col::before {
+    top: 3px;
+    left: 4px;
+    color: rgb(200 30 30);
+  }
+  .tg__lin::before {
+    top: 3px;
+    left: -2px;
+    transform: translateX(-100%);
+    color: rgb(30 90 220);
+  }
+  .tg__item {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    outline: 1px dashed rgb(0 0 0 / 35%);
+    cursor: grab;
+  }
+  .tg__item.is-sel {
+    z-index: 3;
+    outline: 2px solid #ff7a00;
+  }
+  .tg__item--img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 30%;
+    pointer-events: none;
+  }
+  /* o texto segue as specs: Manrope bold 16px, tracking −0,04em, entrelinha 0,9 */
+  .tg__item--texto p {
+    width: 100%;
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    pointer-events: none;
+  }
+  .tg__rot {
+    position: absolute;
+    left: 0;
+    top: 0;
+    padding: 2px 5px;
+    background: #ff7a00;
+    color: #000;
+    font: 700 10px/1 ui-monospace, monospace;
+    opacity: 0;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .tg__item.is-sel .tg__rot {
+    opacity: 1;
+  }
+  .tg__alca {
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 16px;
+    height: 16px;
+    background: #ff7a00;
+    cursor: nwse-resize;
+    opacity: 0;
+  }
+  .tg__item.is-sel .tg__alca {
+    opacity: 1;
+  }
+  .tg__modo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .tg__modo button[aria-pressed='true'] {
+    background: #ff7a00;
+    color: #000;
+    font-weight: 700;
+  }
+  .tg__item--sticker {
+    outline-offset: 0;
+  }
+  .tg__item--sticker img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+  }
+  .tg__item--texto p {
+    white-space: pre-wrap;
+  }
+</style>

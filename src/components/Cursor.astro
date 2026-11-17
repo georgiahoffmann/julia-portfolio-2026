@@ -16,6 +16,13 @@
 </script>
 
 <style>
+  /* mobile: sem cursor customizado nem rasto de giz */
+  @media (max-width: 767px) {
+    .cursor,
+    .cursor-rasto {
+      display: none;
+    }
+  }
   /* rasto de giz (web, nas seções de sobre e contato): azul, por cima do conteúdo e abaixo do cursor */
   .cursor-rasto {
     position: fixed;

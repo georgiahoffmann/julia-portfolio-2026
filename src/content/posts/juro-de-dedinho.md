@@ -1,10 +1,17 @@
 ---
 title: "Juro de Dedinho"
-image: ../../assets/posts/juro-de-dedinho.jpg
-alt: "Juro de Dedinho"
 tipo: imagem
-desktop: { x: 776.0, y: 781.0, w: 219.0, h: 277.0 }
-mobile: { x: 225.0, y: 459.9, w: 81.0, h: 102.0 }
-ordem: 2
-ordemMobile: 2
+image: ../../assets/posts/juro-de-dedinho-01.jpg
+alt: "Juro de Dedinho"
+slides:
+  - ../../assets/posts-slides/juro-de-dedinho-02.jpg
+  - ../../assets/posts-slides/juro-de-dedinho-03.jpg
+  - ../../assets/posts-slides/juro-de-dedinho-04.jpg
+  - ../../assets/posts-slides/juro-de-dedinho-05.jpg
+  - ../../assets/posts-slides/juro-de-dedinho-06.jpg
+  - ../../assets/posts-slides/juro-de-dedinho-07.jpg
+desktop: { x: 0, y: 0, w: 240, h: 300 }
+mobile: { x: 0, y: 0, w: 80.0, h: 100 }
+ordem: 101
+ordemMobile: 9
 ---

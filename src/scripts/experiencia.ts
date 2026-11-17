@@ -94,6 +94,7 @@ if (camera && esfera && jujuImg && area && linhas) {
   const linhasFrente = linhas.querySelector('[data-linhas-frente]')!;
   const tiles = [...esfera.querySelectorAll<HTMLElement>('[data-ar]')];
   const n = tiles.length; // originais (as cópias entram depois)
+  const mS = tiles.filter((t) => t.dataset.soGaleria === undefined).length; // cards da esfera: vêm primeiro no DOM; os só-galeria vêm depois e ficam fora da esfera, da fila e dos soltos
   const root = document.documentElement;
   const reduzir = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -123,11 +124,11 @@ if (camera && esfera && jujuImg && area && linhas) {
   };
   // ---- sensação da rolagem (ajuste fino) ----
   // TAU_ROLAGEM: constante de tempo (ms) com que a imagem alcança o gesto. Menor = mais imediato (antes: ~230 ms a 60 Hz, variando com o monitor).
-  const TAU_ROLAGEM = 110;
+  const TAU_ROLAGEM = 100;
   const TAU_GALERIA = TAU_ROLAGEM; // idem, rolagem interna da galeria: o mesmo seguimento do resto do site
   // inércia do toque na galeria (mobile): ao soltar o dedo, a lista segue com a velocidade do gesto e desacelera (o resto do site já 'escorrega' assim)
   const TAU_INERCIA = 380; // ms: quanto a velocidade leva para cair a 1/e
-  let vInercia = 0; // px/ms (positivo = rolar para baixo)
+  let vInercia = 10; // px/ms (positivo = rolar para baixo)
   let tMove = 0;
   // CURVA_SCROLL: 0 = linear (acompanha o dedo), 1 = smoothstep. A suavização já vem do seguimento acima; o cúbico antigo somava uma segunda camada de atraso.
   const CURVA_SCROLL = 0.35;
@@ -198,7 +199,7 @@ if (camera && esfera && jujuImg && area && linhas) {
   const idDe = (i: number) => tiles[i].dataset.postId!;
   const ordemInicial = (modoOrdem: 'web' | 'mobile') =>
     Array.from({ length: n }, (_, i) => i).sort((a, b) =>
-      modoOrdem === 'web' ? a - b : Number(tiles[a].dataset.ordemMobile) - Number(tiles[b].dataset.ordemMobile) || a - b,
+      modoOrdem === 'web' ? Number(tiles[a].dataset.ordemWeb ?? a) - Number(tiles[b].dataset.ordemWeb ?? b) : Number(tiles[a].dataset.ordemMobile) - Number(tiles[b].dataset.ordemMobile) || a - b,
     );
   const ordens = { web: ordemInicial('web'), mobile: ordemInicial('mobile') };
   const iniciais = { web: [...ordens.web], mobile: [...ordens.mobile] };
@@ -230,8 +231,8 @@ if (camera && esfera && jujuImg && area && linhas) {
   let sobreH = 0;
   // Repouso por seção: um trecho de rolagem (em ef; 0,6 ef = 1 viewport) em que a seção fica inteira e estável, sem a anterior em cima nem a próxima entrando.
   // Não é snap nem interceptação: a rolagem segue livre, só não avança a página durante o trecho. Cada seção tem o seu, conforme o conteúdo.
-  const P1 = 0.3; // GIF (0,5 vh)
-  const P_FOTO = 0.3; // grid de fotos, com bastante texto (0,5 vh)
+  const P1 = 0.5; // GIF (0,5 vh)
+  const P_FOTO = 0.2; // grid de fotos, com bastante texto (0,5 vh)
   const P_TRAB = 0.2; // cavalo / "trabalho com": pouco texto (0,33 vh)
   const P_PROJ = 0.2; // projetos, no topo (0,33 vh)
   const P_PROJ_FIM = 0; // contato: sem repouso
@@ -305,8 +306,9 @@ if (camera && esfera && jujuImg && area && linhas) {
     vh = innerHeight;
     const nav = parseFloat(css.getPropertyValue('--h-nav-atual')) || 68;
     navAtual = nav;
-    const m = n; // originais (tiles também guarda as cópias)
+    const m = mS; // originais da esfera (tiles também guarda as cópias e os só-galeria)
     const arsO = tiles.slice(0, m).map((t) => Number(t.dataset.ar));
+    const arsG = tiles.slice(0, n).map((t) => Number(t.dataset.ar)); // proporções de todos os originais (a galeria inclui os só-galeria)
 
     // ----- esfera: 12px de folga nas laterais; a perspectiva a deixa ~6% maior que R
     // a perspectiva e a altura dos cards fazem a esfera parecer ~40% maior que R; os anéis ocupam a área sob a navbar
@@ -397,21 +399,23 @@ if (camera && esfera && jujuImg && area && linhas) {
     lapY = topo + r.height * 0.65 - vh * 1.5;
 
     dados = tiles.map((_t, i) => {
-      const o = i % m;
+      if (i >= m && i < n) return { ar: Number(_t.dataset.ar), orig: 0, sx: 0, sy: 0, rz: 0, slot: 0, base: [0, 0, 0], eu: [1, 0, 0], ev: [0, 1, 0], atraso: 0 } as Card; // só-galeria
+      const q = i < m ? i : m + (i - n); // índice na esfera (originais, depois cópias)
+      const o = q % m;
       const c = celulas[o % Math.max(1, celulas.length)] ?? { x: 12, y: nav + 8, w: 60, h: 60 };
       const w = arsN[i] * hSolto;
       const sx = c.x + c.w / 2 + (rnd() - 0.5) * Math.max(0, c.w - g8 - w);
       const sy = c.y + c.h / 2 + (rnd() - 0.5) * Math.max(0, c.h - g8 - hSolto);
       return {
-        ar: arsN[i],
+        ar: arsN[q],
         orig: o,
         sx: sx - vw / 2,
         sy: sy - vh * 1.5,
         rz: (rnd() - 0.5) * 3,
         slot: slots[o],
-        base: base[i] as unknown as Card['base'],
-        eu: eu[i] as unknown as Card['eu'],
-        ev: ev[i] as unknown as Card['ev'],
+        base: base[q] as unknown as Card['base'],
+        eu: eu[q] as unknown as Card['eu'],
+        ev: ev[q] as unknown as Card['ev'],
         atraso: rnd() * 180,
       };
     });
@@ -449,21 +453,21 @@ if (camera && esfera && jujuImg && area && linhas) {
         if (movel) {
           gapL = gapG;
           let somaAr = 0;
-          for (let q = linhaIni; q < fim; q++) somaAr += arsO[oq(q)];
+          for (let q = linhaIni; q < fim; q++) somaAr += arsG[oq(q)];
           hL = (larg - (cnt - 1) * gapG) / somaAr;
           if (ultima && hAnt) hL = Math.min(hL, hAnt); // a última linha não estica além das outras
           hAnt = hL;
         }
         let xx = margem;
         for (let q = linhaIni; q < fim; q++) {
-          galPos[oq(q)] = { x: xx + (arsO[oq(q)] * hL) / 2, y: y0 + hL / 2 }; // centro do card
+          galPos[oq(q)] = { x: xx + (arsG[oq(q)] * hL) / 2, y: y0 + hL / 2 }; // centro do card
           galEsc[oq(q)] = hL / hs;
-          xx += arsO[oq(q)] * hL + gapL;
+          xx += arsG[oq(q)] * hL + gapL;
         }
         y0 += hL + gapG;
       };
       for (let q = 0; q < mm; q++) {
-        const w = arsO[oq(q)] * hG;
+        const w = arsG[oq(q)] * hG;
         const novo = linhaW === 0 ? w : linhaW + gapG + w;
         if (novo > larg && q > linhaIni) {
           fecha(q, false);
@@ -472,8 +476,8 @@ if (camera && esfera && jujuImg && area && linhas) {
         } else linhaW = novo;
       }
       fecha(mm, true);
-      for (let i = 0; i < m; i++) if (foraDaLista(i)) galPos[i] = galPos[lista[mm - 1]]; // fora da lista: sem posição própria (ficam ocultos)
-      for (let q = m; q < tiles.length; q++) galPos[q] = galPos[q - m]; // cópias seguem os originais (ficam ocultas)
+      for (let i = 0; i < n; i++) if (foraDaLista(i)) galPos[i] = galPos[lista[mm - 1]]; // fora da lista: sem posição própria (ficam ocultos)
+      for (let q = n; q < tiles.length; q++) galPos[q] = galPos[q - n]; // cópias seguem os originais (ficam ocultas)
       galMax = Math.max(0, y0 - gapG - (vh - foot()) + (movel ? 20 : 40)); // respiro embaixo da lista, para ver os últimos cards antes de a rolagem seguir para o sobre (mobile 20px, web 40px); mobile: 20px de respiro embaixo, para ver os últimos cards antes de a rolagem seguir para o sobre
       galAlvo = clamp(galAlvo, 0, galMax);
       if (snap || galSuave.length !== tiles.length) galSuave = galPos.map((g) => ({ ...g })); // reordenar (editor) desliza; redimensionar não
@@ -508,6 +512,7 @@ if (camera && esfera && jujuImg && area && linhas) {
   // cópias dos cards (volume da esfera): clones sem o modal; clicar abre o mesmo conteúdo
   const originais = [...tiles];
   for (const o of originais) {
+    if (o.dataset.soGaleria !== undefined) continue; // só-galeria: sem cópia
     const cp = o.cloneNode(true) as HTMLElement;
     cp.dataset.copia = '';
     cp.removeAttribute('id');
@@ -1020,7 +1025,7 @@ if (camera && esfera && jujuImg && area && linhas) {
     const trav = inOutSine(prog(t, T_TRAVELLING, DUR_TRAVELLING));
     const rec = inOut(prog(t, T_RECUA, 1000));
     const primeiro = dados[0]?.slot ?? 0;
-    const ultimo = dados[n - 1]?.slot ?? 0;
+    const ultimo = dados[mS - 1]?.slot ?? 0;
     const foco = lerp(lerp(0, primeiro, zIn), ultimo, trav) * (1 - rec);
     const escalaCam = lerp(lerp(1, zoomFila, zIn), 1, rec);
     const vida = zIn * (1 - rec); // câmera na mão: deriva e leve inclinação
@@ -1061,6 +1066,16 @@ if (camera && esfera && jujuImg && area && linhas) {
     tiles.forEach((el, i) => {
       const d = dados[i];
       const copia = i >= n;
+      const soGal = i >= mS && i < n; // só na galeria: invisível fora dela
+      if (soGal && mix <= 0.001) {
+        if (!ocultoAntes[i]) {
+          ocultoAntes[i] = true;
+          sp(el, 'opacity', '0');
+          sp(el, 'visibility', 'hidden');
+          sp(el, 'pointer-events', 'none');
+        }
+        return;
+      }
       const o = d.orig;
       const a = inOut(prog(t, T_ENTRA + o * 30, 900)); // entra no computador
       const e = inOut(prog(t, T_SAI + o * 45, 1100)); // sai enfileirado
@@ -1153,17 +1168,28 @@ if (camera && esfera && jujuImg && area && linhas) {
           gs.x += (alvoG.x - gs.x) * k;
           gs.y += (alvoG.y - gs.y) * k;
         }
-        const gp = copia ? (galSuave[i % n] ?? alvoG) : gs;
+        const io = copia ? i - n : i; // índice do original
+        const gp = copia ? (galSuave[io] ?? alvoG) : gs;
         const gx = gp.x - vw / 2;
         const gy = gp.y - galAtual - vh / 2 - navAtual / 2;
         x = lerp(x, gx, mix);
         y = lerp(y, gy, mix);
-        const sg = galEsc[i % n] ?? sGaleria;
-        ma = lerp(ma, sg, mix);
-        mb = lerp(mb, 0, mix);
-        mc = lerp(mc, 0, mix);
-        md = lerp(md, sg, mix);
-        op = lerp(op, copia || !galMostra[i % n] ? 0 : 1, mix);
+        const sg = galEsc[io] ?? sGaleria;
+        if (soGal) {
+          x = gx;
+          y = gy;
+          ma = sg;
+          mb = 0;
+          mc = 0;
+          md = sg;
+          op = galMostra[io] ? mix : 0;
+        } else {
+          ma = lerp(ma, sg, mix);
+          mb = lerp(mb, 0, mix);
+          mc = lerp(mc, 0, mix);
+          md = lerp(md, sg, mix);
+          op = lerp(op, copia || !galMostra[io] ? 0 : 1, mix);
+        }
         if (mix > 0.5) z = 1;
         if (mix > 0.5 && !copia) alvo = 1;
       }
@@ -1194,6 +1220,9 @@ if (camera && esfera && jujuImg && area && linhas) {
       if (modo === 'galeria') {
         rolagem = 0; // volta ao 1º viewport antes de trocar
         galAlvo = 0;
+        galAtual = 0; // a galeria sempre abre no topo (sem deslizar de uma posição antiga)
+        vInercia = 0; // sem inércia de toque sobrando: o gesto do toque no toggle não rola a lista
+        tMove = 0;
       }
       for (const p of opcoes) p.setAttribute('aria-checked', String(p === o));
     });

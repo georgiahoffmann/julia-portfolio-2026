@@ -1,6 +1,13 @@
 ---
 title: "Arte (real × fantasioso)"
-tipo: pendente
-desktop: { x: 776.0, y: 1078.0, w: 100.0, h: 134.0 }
-ordem: 13
+tipo: imagem
+image: ../../assets/posts/arte-01.jpg
+alt: "Arte (real × fantasioso)"
+slides:
+  - ../../assets/posts-slides/arte-02.jpg
+  - ../../assets/posts-slides/arte-03.jpg
+desktop: { x: 0, y: 0, w: 225, h: 300 }
+mobile: { x: 0, y: 0, w: 75.0, h: 100 }
+ordem: 17
+ordemMobile: 8
 ---

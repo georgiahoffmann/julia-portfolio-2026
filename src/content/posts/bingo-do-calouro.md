@@ -1,7 +1,10 @@
 ---
 title: "Bingo do Calouro"
-tipo: pendente
-desktop: { x: 899.0, y: 1529.0, w: 95.0, h: 133.0 }
-mobile: { x: 225.0, y: 684.0, w: 36.0, h: 47.0 }
-ordem: 20
+tipo: imagem
+image: ../../assets/posts/bingo-do-calouro.jpg
+alt: "Bingo do Calouro"
+desktop: { x: 0, y: 0, w: 241.3, h: 300 }
+mobile: { x: 0, y: 0, w: 80.4, h: 100 }
+ordem: 115
+ordemMobile: 108
 ---

@@ -75,6 +75,30 @@ img {
   cursor: none !important;
 }
 
+/* mobile (< 768px): sem SVG no mouse, nem o customizado nem os de fallback (estrela e lápis): ponteiro nativo */
+@media (max-width: 767px) {
+  body {
+    cursor: auto;
+  }
+  a,
+  a[href],
+  button,
+  summary,
+  [role='button'] {
+    cursor: pointer;
+  }
+  .has-custom-cursor,
+  .has-custom-cursor * {
+    cursor: revert !important;
+  }
+  .has-custom-cursor a,
+  .has-custom-cursor button,
+  .has-custom-cursor summary,
+  .has-custom-cursor [role='button'] {
+    cursor: pointer !important;
+  }
+}
+
 /* galeria: canvas infinito, sem rolagem nativa */
 html:has(body.is-canvas),
 body.is-canvas {
@@ -93,6 +117,23 @@ body.is-canvas {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* Safari iOS 26: a cor das barras vem de elementos fixos colados nas bordas e só é relida quando eles mudam.
+   Estas tiras ficam atrás do canvas (invisíveis) e seguem --bg-barras, atualizado por setBg (scripts/experiencia.ts). */
+.barra-cor {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background-color: var(--bg-barras, var(--color-galeria-bg));
+  pointer-events: none;
+}
+.barra-cor--topo {
+  top: 0;
+}
+.barra-cor--base {
+  bottom: 0;
 }
 
 /* com um card expandido, o fundo perde a saturação (suave) */

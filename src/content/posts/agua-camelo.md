@@ -1,10 +1,15 @@
 ---
 title: "Diariamente pela Água Camelo"
 tipo: imagem
-image: ../../assets/posts/agua-camelo.jpg
+image: ../../assets/posts/agua-camelo-01.jpg
 alt: "Diariamente pela Água Camelo"
-desktop: { x: 559.0, y: 2583.6, w: 197.0, h: 262.7 }
-mobile: { x: 225.0, y: 1104.3, w: 80.0, h: 106.7 }
-ordem: 105
-ordemMobile: 103
+slides:
+  - ../../assets/posts-slides/agua-camelo-02.jpg
+  - ../../assets/posts-slides/agua-camelo-03.jpg
+  - ../../assets/posts-slides/agua-camelo-04.jpg
+  - ../../assets/posts-slides/agua-camelo-05.jpg
+desktop: { x: 0, y: 0, w: 225, h: 300 }
+mobile: { x: 0, y: 0, w: 75.0, h: 100 }
+ordem: 106
+ordemMobile: 104
 ---

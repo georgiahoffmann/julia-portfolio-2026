@@ -13,6 +13,6 @@ slides:
   - ../../assets/posts-slides/carrossel-04-cards-08.jpg
 desktop: { x: 559.0, y: 2297.0, w: 197.0, h: 262.7 }
 mobile: { x: 225.0, y: 983.7, w: 80.0, h: 106.7 }
-ordem: 10
-ordemMobile: 12
+ordem: 8
+ordemMobile: 7
 ---

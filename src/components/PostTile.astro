@@ -8,8 +8,12 @@ interface Props {
   nudge: number;
   /** fica na esfera e no mobile, mas fora da lista da galeria web */
   semListaWeb?: boolean;
+  /** existe só na galeria: fora da esfera */
+  soGaleria?: boolean;
+  /** posição na ordem web da galeria */
+  ordemWeb?: number;
 }
-const { post, nudge, semListaWeb = false } = Astro.props;
+const { post, nudge, semListaWeb = false, soGaleria = false, ordemWeb } = Astro.props;
 const { title, tipo, image, alt, link, funcao, video, slides = [], desktop: d } = post.data;
 const frames = image ? [image, ...slides] : [];
 const carrossel = frames.length > 1;
@@ -48,6 +52,8 @@ const tardias = carrossel
       data-slides={carrossel ? post.id : undefined}
       data-post-id={post.id}
       data-sem-lista-web={semListaWeb ? '' : undefined}
+      data-so-galeria={soGaleria ? '' : undefined}
+      data-ordem-web={ordemWeb}
       data-ordem-mobile={post.data.ordemMobile ?? post.data.ordem}
     >
       {carrossel ? (

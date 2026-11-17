@@ -16,7 +16,7 @@ import gif from '../assets/sobre/julia-pedo.gif';
 import wordmarkPreto from '../assets/sobre/wordmark-preto.png';
 import coisa09 from '../assets/sobre/coisas-09.png';
 import coisa10 from '../assets/sobre/coisas-10.png';
-import coisa11 from '../assets/sobre/coisas-11.png';
+import coisa14 from '../assets/sobre/coisas-14.png';
 import coisa12 from '../assets/sobre/coisas-12.png';
 import coisa13 from '../assets/sobre/coisas-13.png';
 import noite from '../assets/sobre/noite-embacada.png';
@@ -28,20 +28,25 @@ import foto8323 from '../assets/sobre/foto-8323.jpg';
 // coisas que saem da cabeça dela ao pairar no GIF: w = largura, dx/dy = destino a partir da cabeça, r = giro (unidade k, ver .estrela)
 const coisas = [
   // posições escolhidas à mão (modo ?editar), em unidades k a partir da cabeça
-  { id: 'coisas-09', src: coisa09, w: 27.54, dx: -44.7, dy: -9.3, r: -4, d: 0 },
-  { id: 'noite-embacada', soDesktop: true, src: noite, w: 17.95, dx: -62.0, dy: 18.1, r: 3, d: 120 }, // mesma altura da coisas-09
-  { id: 'coisas-11', soDesktop: true, src: coisa11, w: 24.3, dx: -37.5, dy: 39.4, r: 5, d: 240 },
+  { id: 'coisas-09', src: coisa09, w: 27.54, dx: -40, dy: -9.3, r: -4, d: 0 },
+  { id: 'noite-embacada', soDesktop: true, src: noite, w: 18, dx: -62.0, dy: 18, r: 3, d: 120 }, // mesma altura da coisas-09
+  { id: 'coisas-11', soDesktop: true, src: coisa14, w: 5.5, dx: -37.5, dy: 39.4, r: 14, d: 240 }, // coisas-14 no lugar da 11: mesma altura (21,8k), girada 14° p/ a direita,
   { id: 'coisas-10', soDesktop: true, src: coisa10, w: 22.95, dx: 35.5, dy: -14.6, r: 3, d: 60 },
   { id: 'coisas-13', src: coisa13, w: 20.25, dx: 54.1, dy: 5.3, r: 4, d: 180 }, // entre as duas, mais para fora
-  { id: 'coisas-12', soDesktop: true, src: coisa12, w: 23.69, dx: 38.5, dy: 29.8, r: -4, d: 300 },
+  { id: 'coisas-12', soDesktop: true, src: coisa12, w: 23.9, dx: 38.5, dy: 29.8, r: -4, d: 300 },
 ];
 import juju from '../assets/juju-vermelho.svg';
 import { ArrowDown, ArrowUpRight, ChevronsRight, Globe, LayoutGrid } from '@lucide/astro';
 
-const posts = (await getCollection('posts'))
-  // só imagens (sem pendentes) e sem o card horizontal (talheres), que não cabe na esfera
-  .filter((p) => p.data.tipo === 'imagem' && p.data.image && p.data.desktop.w / p.data.desktop.h < 1.5)
+// cards que existem só na galeria (web e mobile): não entram na esfera nem na fila
+const soGaleria = ['black-spunky'];
+const postsTodos = (await getCollection('posts'))
+  // só imagens (sem pendentes) e sem o card horizontal (talheres), que não cabe na esfera (os de `soGaleria` não vão para a esfera, então podem ser horizontais)
+  .filter((p) => p.data.tipo === 'imagem' && p.data.image && (soGaleria.includes(p.id) || p.data.desktop.w / p.data.desktop.h < 1.5))
   .sort((a, b) => a.data.ordem - b.data.ordem);
+const ordemWeb = new Map(postsTodos.map((p, i) => [p.id, i]));
+// no DOM os da esfera vêm primeiro e os só-galeria por último; a ordem da galeria web vem de `data-ordem-web`
+const posts = [...postsTodos.filter((p) => !soGaleria.includes(p.id)), ...postsTodos.filter((p) => soGaleria.includes(p.id))];
 // posts que ficam na esfera e no mobile, mas não aparecem na lista da galeria web (carrossel-07 repete as lâminas do carrossel-02)
 const semListaWeb = ['carrossel-07-sfx'];
 const capas = import.meta.glob<{ default: ImageMetadata }>('../assets/projetos/*.{jpg,jpeg,png,webp,gif}', { eager: true });
@@ -70,7 +75,7 @@ const projetosLista = await Promise.all(
           <path data-linhas-tras class="esfera__tras" />
           <path data-linhas-frente class="esfera__frente" />
         </svg>
-        {posts.map((post) => <PostTile post={post} nudge={0} semListaWeb={semListaWeb.includes(post.id)} />)}
+        {posts.map((post) => <PostTile post={post} nudge={0} semListaWeb={semListaWeb.includes(post.id)} soGaleria={soGaleria.includes(post.id)} ordemWeb={ordemWeb.get(post.id)} />)}
       </div>
     </div>
   </div>
@@ -151,7 +156,7 @@ const projetosLista = await Promise.all(
       <h2 class="rod-seq__tit" data-tx="rod">Onde me <br class="so-mobile" />encontrar</h2>
       <Image class="rod-seq__juju" src={juju} alt="" widths={[600, 1200]} sizes="40vw" />
       <ContatoLinks class="rod-seq__contato" tx="rod" pilulas />
-      <a class="rod-seq__credito" href="https://www.linkedin.com/in/georgialirahoffmann/" target="_blank" rel="noopener"><span data-tx="rod" data-tx-atraso="300" style="--atraso:300ms">Powered by Georgia Hoffmann</span><ArrowUpRight size={'1em'} strokeWidth={2.2} aria-hidden="true" /></a>
+      <a class="rod-seq__credito" data-credito href="https://www.linkedin.com/in/georgialirahoffmann/" data-href-mobile="https://www.georgiahoffmann.com/" target="_blank" rel="noopener"><span data-tx="rod" data-tx-atraso="300" style="--atraso:300ms">Powered by Georgia Hoffmann</span><ArrowUpRight size={'1em'} strokeWidth={2.2} aria-hidden="true" /></a>
     </section>
     <!-- adesivo coisas-12: no mobile, arrastável por todas as seções do sobre (scripts/editar-coisas.ts); web: oculto -->
       <Image class="foto-seq__sticker" src={coisa12} alt="" widths={[300, 600]} sizes="20vw" loading="eager" />
@@ -203,6 +208,18 @@ const projetosLista = await Promise.all(
     <ChevronsRight size={28} strokeWidth={1.6} />
   </button>
 </Base>
+
+<script>
+  // crédito da seção de contato: no mobile (< 768px) leva ao site da Georgia; na web continua no LinkedIn
+  const credito = document.querySelector<HTMLAnchorElement>('[data-credito]');
+  if (credito) {
+    const web = credito.href;
+    const mq = matchMedia('(max-width: 767px)');
+    const ajustar = () => (credito.href = mq.matches ? (credito.dataset.hrefMobile ?? web) : web);
+    ajustar();
+    mq.addEventListener('change', ajustar);
+  }
+</script>
 
 <script>
   import '../scripts/experiencia.ts';
