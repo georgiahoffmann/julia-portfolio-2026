@@ -14,6 +14,13 @@ fotos:
   topoAlt: ""
   centro: ../../assets/sobre/fotos/foto-sobre.jpeg
   centroAlt: Júlia Pedó
+textos:
+  principal: Comecei a trabalhar com design aos 15 e nunca consegui largar o vício
+  topo: Sou de Porto Alegre e estudo Design na PUCRS
+  base: |-
+    Hoje sou Designer JR no Studio Pirá
+    e faço freelas, de social media a identidade visual
+    e capas de disco.
 coisas:
   esquerdaAlto: ../../assets/sobre/coisas/coisas-09.png
   esquerdaLonge: ../../assets/sobre/coisas/noite-embacada.png

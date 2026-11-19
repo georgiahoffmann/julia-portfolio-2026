@@ -212,7 +212,7 @@ content:
             options:
               media: sobre
           - name: grandeAlt
-            label: Descrição da foto grande
+            label: Descrição da foto grande (acessibilidade, não aparece no site)
             type: string
           - name: topo
             label: Foto do canto superior direito
@@ -221,7 +221,7 @@ content:
             options:
               media: sobre
           - name: topoAlt
-            label: Descrição da foto do canto direito
+            label: Descrição da foto do canto (acessibilidade, não aparece no site)
             type: string
           - name: centro
             label: Foto do meio
@@ -230,8 +230,26 @@ content:
             options:
               media: sobre
           - name: centroAlt
-            label: Descrição da foto do meio
+            label: Descrição da foto do meio (acessibilidade, não aparece no site)
             type: string
+
+      - name: textos
+        label: Textos da seção "sobre, a do grid"
+        type: object
+        fields:
+          - name: principal
+            label: Texto principal (grande, ao lado da foto grande)
+            type: text
+            required: true
+          - name: topo
+            label: Texto pequeno (canto superior direito)
+            type: text
+            required: true
+          - name: base
+            label: Texto de baixo (canto inferior direito)
+            description: Cada linha nova vira uma quebra de linha no computador. No celular o texto corre junto.
+            type: text
+            required: true
 
       - name: coisas
         label: Coisas que saem da cabeça da juju (ao passar o mouse no GIF)

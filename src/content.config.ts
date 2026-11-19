@@ -63,6 +63,12 @@ const sobre = defineCollection({
         centro: image(), // foto do meio
         centroAlt: z.string().optional(),
       }),
+      // textos da seção de fotos do sobre (cada quebra de linha em `base` só vale no computador)
+      textos: z.object({
+        principal: z.string(),
+        topo: z.string(),
+        base: z.string(),
+      }),
       // coisas que saem da cabeça dela ao pairar no GIF (posição e tamanho ficam no código: index.astro)
       coisas: z.object({
         esquerdaAlto: image(),

@@ -15,7 +15,8 @@ import posMobile from '../data/coisas-mobile.json'; // posições das coisas no 
 import gif from '../assets/marca/julia-pedo.gif';
 import wordmarkPreto from '../assets/marca/wordmark-preto.png';
 // fotos da seção "sobre mim" e coisas que saem da cabeça: src/content/sobre/julia.md (editáveis no Pages CMS)
-const { fotos, coisas: img } = (await getEntry('sobre', 'julia'))!.data;
+const { fotos, textos, coisas: img } = (await getEntry('sobre', 'julia'))!.data;
+const linhasBase = textos.base.split('\n').map((l) => l.trim()).filter(Boolean);
 
 // coisas que saem da cabeça dela ao pairar no GIF: w = largura, dx/dy = destino a partir da cabeça, r = giro (unidade k, ver .estrela)
 const coisas = [
@@ -92,9 +93,9 @@ const projetosLista = await Promise.all(
     <section class="foto-seq" aria-label="Sobre mim">
       <div class="grao"><i class="grao__c grao__c--escuro"></i></div>
       <figure class="foto-seq__fig foto-seq__fig--a"><Image src={fotos.grande} alt={fotos.grandeAlt ?? ''} widths={[600, 1200]} sizes="30vw" loading="eager" /></figure>
-      <div class="foto-seq__txt"><p class="foto-seq__texto" data-tx="foto">Comecei a trabalhar com design aos 15 e nunca consegui largar o vício</p></div>
-      <div class="foto-seq__txt foto-seq__txt--topo"><p class="foto-seq__mini" data-tx="foto" data-tx-atraso="200" style="--atraso:200ms">Sou de Porto Alegre e estudo Design na PUCRS</p></div>
-      <div class="foto-seq__txt foto-seq__txt--base"><p class="foto-seq__texto foto-seq__texto--m" data-tx="foto" data-tx-atraso="350" style="--atraso:350ms">Hoje sou Designer JR no Studio Pirá <br class="so-web" />e faço freelas, de social media a identidade visual <br class="so-web" />e capas de disco.</p></div>
+      <div class="foto-seq__txt"><p class="foto-seq__texto" data-tx="foto">{textos.principal}</p></div>
+      <div class="foto-seq__txt foto-seq__txt--topo"><p class="foto-seq__mini" data-tx="foto" data-tx-atraso="200" style="--atraso:200ms">{textos.topo}</p></div>
+      <div class="foto-seq__txt foto-seq__txt--base"><p class="foto-seq__texto foto-seq__texto--m" data-tx="foto" data-tx-atraso="350" style="--atraso:350ms">{linhasBase.map((l, i) => (i < linhasBase.length - 1 ? <Fragment>{l + ' '}<br class="so-web" /></Fragment> : l))}</p></div>
       <figure class="foto-seq__fig foto-seq__fig--b"><Image src={fotos.topo} alt={fotos.topoAlt ?? ''} widths={[500, 1000]} sizes="25vw" loading="eager" /></figure>
       <figure class="foto-seq__fig foto-seq__fig--c"><Image src={fotos.centro} alt={fotos.centroAlt ?? ''} widths={[500, 1000]} sizes="25vw" loading="eager" /></figure>
     </section>
