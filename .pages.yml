@@ -298,8 +298,7 @@ content:
             type: image
             required: true
             options:
-            description: Ideal serem verticais. Outros tamanhos serão recortados.
-              media: sobre
+            media: sobre
 
       - name: site
         label: Compartilhamento do site
