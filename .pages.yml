@@ -1,6 +1,9 @@
+# Pages CMS — site Júlia Pedó
+# A Júlia edita textos, imagens e links. Posição, tamanho e ordem no layout ficam escondidos e preservados.
+
 settings:
   content:
-    merge: true 
+    merge: true # mantém no arquivo os campos que não aparecem aqui (desktop, mobile, ordem...)
   commit:
     identity: app
     templates:
@@ -10,22 +13,22 @@ settings:
       rename: "cms: renomeia {oldPath} → {newPath} ({userName})"
 
 media:
-  - name: sobre
-    label: Fotos do sobre e compartilhamento
-    input: src/assets/sobre
-    output: ../../assets/sobre
-    extensions: [jpg, jpeg, png, webp]
-    rename: safe
   - name: posts
-    label: Imagens dos posts
+    label: Posts de redes sociais
     input: src/assets/posts
-    output: ../../assets/posts
+    output: ../../../assets/posts
     extensions: [jpg, jpeg, png, gif, webp]
     rename: safe
-  - name: slides
-    label: Lâminas dos carrosséis
-    input: src/assets/posts-slides
-    output: ../../assets/posts-slides
+  - name: sobre
+    label: Sobre (fotos e coisas)
+    input: src/assets/sobre
+    output: ../../assets/sobre
+    extensions: [jpg, jpeg, png, gif, webp]
+    rename: safe
+  - name: site
+    label: Imagem de compartilhamento
+    input: src/assets/site
+    output: ../../assets/site
     extensions: [jpg, jpeg, png, webp]
     rename: safe
   - name: projetos
@@ -33,85 +36,151 @@ media:
     input: src/assets/projetos
     output: ../../assets/projetos
     extensions: [gif, jpg, jpeg, png, webp]
-    rename: false 
+    rename: false # o nome do arquivo precisa ser igual ao do projeto (ex.: nido.gif)
+
+components:
+  postBase:
+    type: object
+    fields:
+      - name: title
+        label: Título
+        type: string
+        required: true
+      - name: tipo
+        label: Status
+        type: select
+        required: true
+        description: Ao colocar uma imagem num post pendente, troque para "Publicado".
+        options:
+          values:
+            - name: imagem
+              label: Publicado
+            - name: pendente
+              label: Pendente (sem imagem ainda)
+            - name: pendente-video
+              label: Pendente (vídeo)
+      - name: alt
+        label: Descrição da imagem (acessibilidade)
+        type: string
+      - name: link
+        label: Link (post no Instagram)
+        type: string
+        pattern:
+          regex: "^https?://"
+          message: "Comece com https://"
+      - name: funcao
+        label: Papel dela neste trabalho
+        description: Aparece ao passar o mouse na esfera.
+        type: string
 
 content:
-  - name: sobre
-    label: Sobre e site
-    type: file
-    path: src/content/sobre/julia.md
-    format: yaml-frontmatter
-    operations:
-      delete: false
-    fields:
-      - name: site
-        label: Compartilhamento do site
-        description: O que aparece na aba do navegador e quando alguém envia o link (WhatsApp, Instagram, LinkedIn...).
-        type: object
+  - name: posts
+    label: Posts de redes sociais
+    type: group
+    items:
+      - name: carrosseis
+        label: Carrosséis
+        type: collection
+        path: src/content/posts/carrosseis
+        format: yaml-frontmatter
+        operations:
+          create: false
+          delete: false
+          rename: false
+        view:
+          primary: title
+          fields: [title, tipo]
+          search: [title]
         fields:
-          - name: titulo
-            label: Título do site
+          - name: title
+            label: Título
             type: string
             required: true
-            options:
-              maxlength: 70
-          - name: descricao
-            label: Descrição
-            type: text
+          - name: tipo
+            label: Status
+            type: select
             required: true
             options:
-              maxlength: 160
-          - name: imagem
-            label: Imagem de capa ao compartilhar
-            description: Ideal 1200×630 (horizontal). Outros tamanhos são recortados pelo centro.
+              values:
+                - name: imagem
+                  label: Publicado
+                - name: pendente
+                  label: Pendente (sem imagem ainda)
+          - name: image
+            label: Capa (1ª lâmina)
             type: image
-            required: true
             options:
-              media: sobre
-          - name: imagemAlt
-            label: Descrição da imagem de capa
+              media: posts
+          - name: slides
+            label: Demais lâminas
+            description: Passam em loop no card, na ordem desta lista.
+            type: image
+            options:
+              media: posts
+              multiple: true
+          - name: alt
+            label: Descrição da capa (acessibilidade)
+            type: string
+          - name: link
+            label: Link (post no Instagram)
+            type: string
+            pattern:
+              regex: "^https?://"
+              message: "Comece com https://"
+          - name: funcao
+            label: Papel dela neste trabalho
+            description: Aparece ao passar o mouse na esfera.
             type: string
 
-      - name: fotos
-        label: Fotos da seção "sobre mim"
-        type: object
+      - name: avulsos
+        label: Posts avulsos
+        type: collection
+        path: src/content/posts/avulsos
+        format: yaml-frontmatter
+        operations:
+          create: false
+          delete: false
+          rename: false
+        view:
+          primary: title
+          fields: [title, tipo]
+          search: [title]
         fields:
-          - name: grande
-            label: Foto grande (esquerda)
-            type: image
-            required: true
-            options:
-              media: sobre
-          - name: grandeAlt
-            label: Descrição da foto grande
+          - name: title
+            label: Título
             type: string
-          - name: topo
-            label: Foto do canto superior direito
-            type: image
             required: true
-            options:
-              media: sobre
-          - name: topoAlt
-            label: Descrição da foto do canto
-            type: string
-          - name: centro
-            label: Foto do meio
-            type: image
+          - name: tipo
+            label: Status
+            type: select
             required: true
+            description: Ao colocar uma imagem num post pendente, troque para "Publicado".
             options:
-              media: sobre
-          - name: centroAlt
-            label: Descrição da foto do meio
+              values:
+                - name: imagem
+                  label: Publicado
+                - name: pendente
+                  label: Pendente (sem imagem ainda)
+                - name: pendente-video
+                  label: Pendente (vídeo)
+          - name: image
+            label: Imagem
+            type: image
+            options:
+              media: posts
+          - name: alt
+            label: Descrição da imagem (acessibilidade)
             type: string
-
-      - name: email
-        label: E-mail (copiado ao clicar em "Email")
-        type: string
-        required: true
-      - name: instagram
-        label: Instagram (só o usuário, sem @)
-        type: string
-        required: true
+          - name: link
+            label: Link (post no Instagram)
+            type: string
+            pattern:
+              regex: "^https?://"
+              message: "Comece com https://"
+          - name: funcao
+            label: Papel dela neste trabalho
+            description: Aparece ao passar o mouse na esfera.
+            type: string
 
   - name: projetos
     label: Projetos
@@ -154,59 +223,121 @@ content:
           format: markdown
           media: false
 
-  - name: posts
-    label: Posts da galeria
-    type: collection
-    path: src/content/posts
+  - name: sobre
+    label: Sobre e site
+    type: file
+    path: src/content/sobre/julia.md
     format: yaml-frontmatter
     operations:
-      create: false
       delete: false
-      rename: false
-    view:
-      primary: title
-      fields: [title, tipo]
-      search: [title]
     fields:
-      - name: title
-        label: Título
+      - name: fotos
+        label: Fotos da seção "sobre mim"
+        type: object
+        fields:
+          - name: grande
+            label: Foto grande (esquerda)
+            type: image
+            required: true
+            options:
+              media: sobre
+          - name: grandeAlt
+            label: Descrição da foto grande
+            type: string
+          - name: topo
+            label: Foto do canto superior direito
+            type: image
+            required: true
+            options:
+              media: sobre
+          - name: topoAlt
+            label: Descrição da foto do canto
+            type: string
+          - name: centro
+            label: Foto do meio
+            type: image
+            required: true
+            options:
+              media: sobre
+          - name: centroAlt
+            label: Descrição da foto do meio
+            type: string
+
+      - name: coisas
+        label: Coisas que saem da cabeça (ao passar o mouse no GIF)
+        description: PNG com fundo transparente. O tamanho e a posição de cada uma são fixos.
+        type: object
+        fields:
+          - name: esquerdaAlto
+            label: Esquerda, em cima (aparece também no celular)
+            type: image
+            required: true
+            options:
+              media: sobre
+          - name: esquerdaLonge
+            label: Esquerda, mais afastada (só computador)
+            type: image
+            required: true
+            options:
+              media: sobre
+          - name: esquerdaBaixo
+            label: Esquerda, embaixo (só computador)
+            type: image
+            required: true
+            options:
+              media: sobre
+          - name: direitaAlto
+            label: Direita, em cima (só computador)
+            type: image
+            required: true
+            options:
+              media: sobre
+          - name: direitaLonge
+            label: Direita, mais afastada (aparece também no celular)
+            type: image
+            required: true
+            options:
+              media: sobre
+          - name: direitaBaixo
+            label: Direita, embaixo (só computador; também é o adesivo da seção de fotos)
+            type: image
+            required: true
+            options:
+              media: sobre
+
+      - name: site
+        label: Compartilhamento do site
+        description: O que aparece na aba do navegador e quando alguém envia o link (WhatsApp, Instagram, LinkedIn...).
+        type: object
+        fields:
+          - name: titulo
+            label: Título do site
+            type: string
+            required: true
+            options:
+              maxlength: 70
+          - name: descricao
+            label: Descrição
+            type: text
+            required: true
+            options:
+              maxlength: 160
+          - name: imagem
+            label: Imagem de capa ao compartilhar
+            description: Ideal 1200×630 (horizontal). Outros tamanhos são recortados pelo centro.
+            type: image
+            required: true
+            options:
+              media: site
+          - name: imagemAlt
+            label: Descrição da imagem de capa
+            type: string
+
+      - name: email
+        label: E-mail (copiado ao clicar em "Email")
         type: string
         required: true
-      - name: tipo
-        label: Tipo
-        type: select
+      - name: instagram
+        label: Instagram (só o usuário, sem @)
+        type: string
         required: true
-        description: Ao colocar uma imagem num post pendente, troque para "Imagem".
-        options:
-          values:
-            - name: imagem
-              label: Imagem
-            - name: pendente
-              label: Pendente (sem imagem ainda)
-            - name: pendente-video
-              label: Pendente (vídeo)
-      - name: image
-        label: Imagem / capa
-        type: image
-        options:
-          media: posts
-      - name: alt
-        label: Descrição da imagem (acessibilidade)
-        type: string
-      - name: slides
-        label: Demais lâminas do carrossel
-        description: A capa é a imagem acima. Estas passam em loop no card.
-        type: image
-        options:
-          media: slides
-          multiple: true
-      - name: link
-        label: Link (post no Instagram)
-        type: string
-        pattern:
-          regex: "^https?://"
-          message: "Comece com https://"
-      - name: funcao
-        label: Papel dela neste trabalho
-        description: Aparece ao passar o mouse na esfera.
-        type: string
