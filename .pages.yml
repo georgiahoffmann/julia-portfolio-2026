@@ -2,7 +2,7 @@ settings:
   content:
     merge: true
   commit:
-    identity: app
+    identity: user
     templates:
       create: "cms: cria {path} ({userName})"
       update: "cms: atualiza {path} ({userName})"
