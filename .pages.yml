@@ -33,7 +33,7 @@ media:
     input: src/assets/projetos
     output: ../../assets/projetos
     extensions: [gif, jpg, jpeg, png, webp]
-    rename: false
+    rename: safe
 
 content:
   - name: posts
@@ -149,13 +149,18 @@ content:
     type: collection
     path: src/content/projetos
     format: yaml-frontmatter
+    filename: "{primary}.md"
     operations:
-      create: false
-      delete: false
+      create: true
+      delete: true
       rename: false
     view:
       primary: titulo
-      fields: [titulo, subtitulo]
+      fields: [titulo, subtitulo, ordem]
+      sort: [ordem, titulo]
+      default:
+        sort: ordem
+        order: asc
     fields:
       - name: titulo
         label: Título
@@ -165,19 +170,22 @@ content:
         label: Subtítulo
         type: string
         required: true
-      - name: chamada
-        label: Chamada do link
-        type: string
-        required: true
+      - name: imagem
+        label: Capa (GIF ou imagem)
+        description: Formato horizontal (proporção 425×237). GIF fica parado até o projeto aparecer na tela.
+        type: image
+        options:
+          media: projetos
       - name: link
         label: Link do projeto completo (Behance etc.)
         type: string
         pattern:
           regex: "^https?://"
           message: "Comece com https://"
-      - name: selo
-        label: Selo (opcional, ex. prêmio)
-        type: string
+      - name: ordem
+        label: Posição na lista
+        description: 1 = primeiro. Sem número, o projeto vai para o fim.
+        type: number
       - name: body
         label: Descrição
         type: rich-text

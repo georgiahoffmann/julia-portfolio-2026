@@ -26,20 +26,17 @@ const posts = defineCollection({
     }),
 });
 
-// PROJETOS — cada projeto é um arquivo. `imagem` ausente = mostra o nome do projeto como pendência.
+// PROJETOS — cada projeto é um arquivo (o layout é um grid que se ajusta sozinho). Editável e criável no Pages CMS.
+// `imagem` ausente = mostra o nome do projeto como pendência. `ordem` ausente = vai para o fim da lista.
 const projetos = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/projetos' }),
   schema: ({ image }) =>
     z.object({
       titulo: z.string(),
       subtitulo: z.string(),
-      chamada: z.string(),
       link: z.string().url().optional(),
-      imagem: image().optional(),
-      selo: z.string().optional(),
-      ordem: z.number(),
-      desktop: z.object({ texto: rect, imagem: rect, selo: rect.optional(), linha: z.number() }),
-      mobile: z.object({ texto: rect, imagem: rect, selo: rect.optional(), linha: z.number() }),
+      imagem: image().optional(), // capa (GIF ou imagem); de GIF, scripts/posters.mjs gera o quadro parado
+      ordem: z.number().optional(),
     }),
 });
 

@@ -41,15 +41,13 @@ const ordemWeb = new Map(postsTodos.map((p, i) => [p.id, i]));
 const posts = [...postsTodos.filter((p) => !soGaleria.includes(p.id)), ...postsTodos.filter((p) => soGaleria.includes(p.id))];
 // posts que ficam na esfera e no mobile, mas não aparecem na lista da galeria web (carrossel-07 repete as lâminas do carrossel-02)
 const semListaWeb = ['carrossel-07-sfx'];
-const capas = import.meta.glob<{ default: ImageMetadata }>('../assets/projetos/*.{jpg,jpeg,png,webp,gif}', { eager: true });
-const capaDe = (id: string) => Object.entries(capas).find(([k]) => k.split('/').pop()!.replace(/\.[^.]+$/, '') === id)?.[1].default;
-// quadro parado de cada GIF de capa (gerado por scripts/posters.mjs): só o projeto mais visível roda o GIF
+// quadro parado de cada GIF de capa (gerado por scripts/posters.mjs, com o id do projeto): só o projeto mais visível roda o GIF
 const posters = import.meta.glob<{ default: ImageMetadata }>('../assets/projetos-posters/*.webp', { eager: true });
 const posterDe = (id: string) => Object.entries(posters).find(([k]) => k.split('/').pop()!.replace(/\.[^.]+$/, '') === id)?.[1].default;
 const projetosLista = await Promise.all(
   (await getCollection('projetos'))
-    .sort((a, b) => a.data.ordem - b.data.ordem)
-    .map(async (p) => ({ ...p.data, id: p.id, Content: (await render(p)).Content, capa: capaDe(p.id) ?? p.data.imagem, poster: posterDe(p.id) })),
+    .sort((a, b) => (a.data.ordem ?? Infinity) - (b.data.ordem ?? Infinity) || a.data.titulo.localeCompare(b.data.titulo))
+    .map(async (p) => ({ ...p.data, id: p.id, Content: (await render(p)).Content, capa: p.data.imagem, poster: p.data.imagem?.format === 'gif' ? posterDe(p.id) : undefined })),
 );
 ---
 
