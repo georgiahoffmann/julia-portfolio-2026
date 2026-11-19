@@ -227,7 +227,7 @@ content:
       delete: false
     fields:
       - name: fotos
-        label: Fotos da seção "sobre mim"
+        label: Fotos da seção "sobre, a do grid"
         type: object
         fields:
           - name: grande
@@ -246,7 +246,7 @@ content:
             options:
               media: sobre
           - name: topoAlt
-            label: Descrição da foto do canto
+            label: Descrição da foto do canto direito
             type: string
           - name: centro
             label: Foto do meio
@@ -259,7 +259,7 @@ content:
             type: string
 
       - name: coisas
-        label: Coisas que saem da cabeça (ao passar o mouse no GIF)
+        label: Coisas que saem da cabeça da juju (ao passar o mouse no GIF)
         description: PNG com fundo transparente. O tamanho e a posição de cada uma são fixos.
         type: object
         fields:
@@ -298,6 +298,7 @@ content:
             type: image
             required: true
             options:
+            description: Ideal serem verticais. Outros tamanhos serão recortados.
               media: sobre
 
       - name: site
@@ -334,5 +335,9 @@ content:
         required: true
       - name: instagram
         label: Instagram (só o usuário, sem @)
+        type: string
+        required: true
+      - name: linkedin
+        label: linkedin (só o usuário, sem @)
         type: string
         required: true
