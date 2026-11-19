@@ -1,0 +1,171 @@
+# Pages CMS — site Júlia Pedó
+# A Juju edita textos, imagens e links. Posição, tamanho e ordem no layout ficam escondidos e preservados.
+
+settings:
+  content:
+    merge: true # mantém no arquivo os campos que não aparecem aqui (desktop, mobile, ordem...)
+  commit:
+    identity: app
+    templates:
+      create: "cms: cria {path} ({userName})"
+      update: "cms: atualiza {path} ({userName})"
+      delete: "cms: apaga {path} ({userName})"
+      rename: "cms: renomeia {oldPath} → {newPath} ({userName})"
+
+media:
+  - name: posts
+    label: Imagens dos posts
+    input: src/assets/posts
+    output: ../../assets/posts
+    extensions: [jpg, jpeg, png, gif, webp]
+    rename: safe
+  - name: slides
+    label: Lâminas dos carrosséis
+    input: src/assets/posts-slides
+    output: ../../assets/posts-slides
+    extensions: [jpg, jpeg, png, webp]
+    rename: safe
+  - name: projetos
+    label: Capas dos projetos
+    input: src/assets/projetos
+    output: ../../assets/projetos
+    extensions: [gif, jpg, jpeg, png, webp]
+    rename: false # o nome do arquivo precisa ser igual ao do projeto (ex.: nido.gif)
+
+content:
+  - name: sobre
+    label: Sobre
+    type: file
+    path: src/content/sobre/julia.md
+    format: yaml-frontmatter
+    operations:
+      delete: false
+    fields:
+      - name: nome
+        label: Nome
+        type: string
+        required: true
+      - name: funcao
+        label: Função (aparece abaixo do nome)
+        type: string
+        required: true
+      - name: resumo
+        label: Resumo curto
+        type: text
+        required: true
+      - name: body
+        label: Texto completo da intro
+        type: rich-text
+        options:
+          format: markdown
+          media: false
+      - name: email
+        label: E-mail
+        type: string
+        required: true
+      - name: instagram
+        label: Instagram (só o usuário, sem @)
+        type: string
+        required: true
+      - name: linkedin
+        label: LinkedIn (só o usuário)
+        type: string
+        required: true
+
+  - name: projetos
+    label: Projetos
+    type: collection
+    path: src/content/projetos
+    format: yaml-frontmatter
+    operations:
+      create: false
+      delete: false
+      rename: false
+    view:
+      primary: titulo
+      fields: [titulo, subtitulo]
+    fields:
+      - name: titulo
+        label: Título
+        type: string
+        required: true
+      - name: subtitulo
+        label: Subtítulo
+        type: string
+        required: true
+      - name: chamada
+        label: Chamada do link
+        type: string
+        required: true
+      - name: link
+        label: Link do projeto completo (Behance etc.)
+        type: string
+        pattern:
+          regex: "^https?://"
+          message: "Comece com https://"
+      - name: selo
+        label: Selo (opcional, ex. prêmio)
+        type: string
+      - name: body
+        label: Descrição
+        type: rich-text
+        options:
+          format: markdown
+          media: false
+
+  - name: posts
+    label: Posts da galeria
+    type: collection
+    path: src/content/posts
+    format: yaml-frontmatter
+    operations:
+      create: false
+      delete: false
+      rename: false
+    view:
+      primary: title
+      fields: [title, tipo]
+      search: [title]
+    fields:
+      - name: title
+        label: Título
+        type: string
+        required: true
+      - name: tipo
+        label: Tipo
+        type: select
+        required: true
+        description: Ao colocar uma imagem num post pendente, troque para "Imagem".
+        options:
+          values:
+            - name: imagem
+              label: Imagem
+            - name: pendente
+              label: Pendente (sem imagem ainda)
+            - name: pendente-video
+              label: Pendente (vídeo)
+      - name: image
+        label: Imagem / capa
+        type: image
+        options:
+          media: posts
+      - name: alt
+        label: Descrição da imagem (acessibilidade)
+        type: string
+      - name: slides
+        label: Demais lâminas do carrossel
+        description: A capa é a imagem acima. Estas passam em loop no card.
+        type: image
+        options:
+          media: slides
+          multiple: true
+      - name: link
+        label: Link (post no Instagram)
+        type: string
+        pattern:
+          regex: "^https?://"
+          message: "Comece com https://"
+      - name: funcao
+        label: Papel dela neste trabalho
+        description: Aparece ao passar o mouse na esfera.
+        type: string
