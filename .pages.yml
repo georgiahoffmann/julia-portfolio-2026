@@ -1,9 +1,6 @@
-# Pages CMS — site Júlia Pedó
-# A Juju edita textos, imagens e links. Posição, tamanho e ordem no layout ficam escondidos e preservados.
-
 settings:
   content:
-    merge: true # mantém no arquivo os campos que não aparecem aqui (desktop, mobile, ordem...)
+    merge: true 
   commit:
     identity: app
     templates:
@@ -13,6 +10,12 @@ settings:
       rename: "cms: renomeia {oldPath} → {newPath} ({userName})"
 
 media:
+  - name: sobre
+    label: Fotos do sobre e compartilhamento
+    input: src/assets/sobre
+    output: ../../assets/sobre
+    extensions: [jpg, jpeg, png, webp]
+    rename: safe
   - name: posts
     label: Imagens dos posts
     input: src/assets/posts
@@ -30,45 +33,83 @@ media:
     input: src/assets/projetos
     output: ../../assets/projetos
     extensions: [gif, jpg, jpeg, png, webp]
-    rename: false # o nome do arquivo precisa ser igual ao do projeto (ex.: nido.gif)
+    rename: false 
 
 content:
   - name: sobre
-    label: Sobre
+    label: Sobre e site
     type: file
     path: src/content/sobre/julia.md
     format: yaml-frontmatter
     operations:
       delete: false
     fields:
-      - name: nome
-        label: Nome
-        type: string
-        required: true
-      - name: funcao
-        label: Função (aparece abaixo do nome)
-        type: string
-        required: true
-      - name: resumo
-        label: Resumo curto
-        type: text
-        required: true
-      - name: body
-        label: Texto completo da intro
-        type: rich-text
-        options:
-          format: markdown
-          media: false
+      - name: site
+        label: Compartilhamento do site
+        description: O que aparece na aba do navegador e quando alguém envia o link (WhatsApp, Instagram, LinkedIn...).
+        type: object
+        fields:
+          - name: titulo
+            label: Título do site
+            type: string
+            required: true
+            options:
+              maxlength: 70
+          - name: descricao
+            label: Descrição
+            type: text
+            required: true
+            options:
+              maxlength: 160
+          - name: imagem
+            label: Imagem de capa ao compartilhar
+            description: Ideal 1200×630 (horizontal). Outros tamanhos são recortados pelo centro.
+            type: image
+            required: true
+            options:
+              media: sobre
+          - name: imagemAlt
+            label: Descrição da imagem de capa
+            type: string
+
+      - name: fotos
+        label: Fotos da seção "sobre mim"
+        type: object
+        fields:
+          - name: grande
+            label: Foto grande (esquerda)
+            type: image
+            required: true
+            options:
+              media: sobre
+          - name: grandeAlt
+            label: Descrição da foto grande
+            type: string
+          - name: topo
+            label: Foto do canto superior direito
+            type: image
+            required: true
+            options:
+              media: sobre
+          - name: topoAlt
+            label: Descrição da foto do canto
+            type: string
+          - name: centro
+            label: Foto do meio
+            type: image
+            required: true
+            options:
+              media: sobre
+          - name: centroAlt
+            label: Descrição da foto do meio
+            type: string
+
       - name: email
-        label: E-mail
+        label: E-mail (copiado ao clicar em "Email")
         type: string
         required: true
       - name: instagram
         label: Instagram (só o usuário, sem @)
-        type: string
-        required: true
-      - name: linkedin
-        label: LinkedIn (só o usuário)
         type: string
         required: true
 
