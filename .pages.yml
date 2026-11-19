@@ -33,40 +33,7 @@ media:
     input: src/assets/projetos
     output: ../../assets/projetos
     extensions: [gif, jpg, jpeg, png, webp]
-    rename: false 
-
-    type: object
-    fields:
-      - name: title
-        label: Título
-        type: string
-        required: true
-      - name: tipo
-        label: Status
-        type: select
-        required: true
-        description: Ao colocar uma imagem num post pendente, troque para "Publicado".
-        options:
-          values:
-            - name: imagem
-              label: Publicado
-            - name: pendente
-              label: Pendente (sem imagem ainda)
-            - name: pendente-video
-              label: Pendente (vídeo)
-      - name: alt
-        label: Descrição da imagem (acessibilidade)
-        type: string
-      - name: link
-        label: Link (post no Instagram)
-        type: string
-        pattern:
-          regex: "^https?://"
-          message: "Comece com https://"
-      - name: funcao
-        label: Papel dela neste trabalho
-        description: Aparece ao passar o mouse na esfera.
-        type: string
+    rename: false
 
 content:
   - name: posts
@@ -298,7 +265,7 @@ content:
             type: image
             required: true
             options:
-            media: sobre
+              media: sobre
 
       - name: site
         label: Compartilhamento do site

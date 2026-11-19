@@ -4,18 +4,16 @@
 // editar o texto de cada bloco e posicionar o adesivo (coisas-12) livremente. O resultado sai em JSON.
 // Só existe no `npm run dev`: no site publicado a página redireciona para a home.
 import '../styles/global.css';
-import foto8321 from '../assets/sobre/foto-8321.jpg';
-import foto8322 from '../assets/sobre/foto-8322.jpg';
-import foto8323 from '../assets/sobre/foto-8323.jpg';
-import fotoSobre from '../assets/sobre/foto-sobre.jpeg';
-import coisa12 from '../assets/sobre/coisas-12.png';
+import foto8322 from '../assets/sobre/fotos/foto-8322.jpg';
+import foto8323 from '../assets/sobre/fotos/foto-8323.jpg';
+import fotoSobre from '../assets/sobre/fotos/foto-sobre.jpeg';
+import coisa12 from '../assets/sobre/coisas/coisas-12.png';
 
 if (import.meta.env.PROD) return Astro.redirect('/');
 const dados = {
   fotoA: foto8323.src,
   fotoB: foto8322.src,
   fotoC: fotoSobre.src,
-  fotoD: foto8321.src,
   sticker: { src: coisa12.src, ar: coisa12.width / coisa12.height },
 };
 ---
@@ -166,7 +164,7 @@ const dados = {
   type Layout = { preset: string; cols: number; rows: number; gx: number; gy: number; mx: number; my: number; items: Item[] };
   type Estado = { modo: 'web' | 'mobile'; grid: boolean; nums: boolean; sel: string; web: Layout; mobile: Layout };
 
-  const D = JSON.parse(document.getElementById('dados')!.textContent!) as { fotoA: string; fotoB: string; fotoC: string; fotoD: string; sticker: { src: string; ar: number } };
+  const D = JSON.parse(document.getElementById('dados')!.textContent!) as { fotoA: string; fotoB: string; fotoC: string; sticker: { src: string; ar: number } };
   const T1 = 'Comecei a trabalhar com design aos 15 e nunca consegui largar o vício';
   const T2 = 'Sou de Porto Alegre e estudo Design na PUCRS';
   const T3 = 'Hoje sou Designer JR no Studio Pirá e faço freelas, de social media a identidade visual e capas de disco.';
@@ -199,7 +197,6 @@ const dados = {
         t('texto3', 'Texto de baixo', T3, 8, 7, 3, 4, 28, 500, 'end'),
         f('fotoB', 'Foto 8322', D.fotoB, 5, 5, 3, 6),
         f('fotoC', 'Foto sobre', D.fotoC, 8, 1, 3, 6),
-        f('fotoD', 'Foto 8321', D.fotoD, 11, 5, 2, 4),
         s(60, 64, 12),
       ],
     },
@@ -218,7 +215,6 @@ const dados = {
         f('fotoA', 'Foto 8323', D.fotoA, 1, 7, 2, 3, { bl: true }),
         f('fotoB', 'Foto 8322', D.fotoB, 3, 7, 2, 3),
         f('fotoC', 'Foto sobre', D.fotoC, 1, 10, 2, 3),
-        f('fotoD', 'Foto 8321', D.fotoD, 3, 10, 2, 3),
         s(62, 24, 30),
       ],
     },

@@ -5,35 +5,27 @@
 //  3. saem enfileirados na horizontal (80% da tela) num novo viewport; o fundo vira azul
 //  4. a câmera dá um zoom e passa por cada card da fila, como num plano de filme
 //  5. a fila explode num mundo em forma de esfera, feito de cards alinhados (arraste para girar)
-import { getCollection, render } from 'astro:content';
+import { getCollection, getEntry, render } from 'astro:content';
 import { Image } from 'astro:assets';
 import Base from '../layouts/Base.astro';
 import PostTile from '../components/PostTile.astro';
 import AvisoMobile from '../components/AvisoMobile.astro';
 import ContatoLinks from '../components/ContatoLinks.astro';
 import posMobile from '../data/coisas-mobile.json'; // posições das coisas no mobile (editadas em /?editar)
-import gif from '../assets/sobre/julia-pedo.gif';
-import wordmarkPreto from '../assets/sobre/wordmark-preto.png';
-import coisa09 from '../assets/sobre/coisas-09.png';
-import coisa10 from '../assets/sobre/coisas-10.png';
-import coisa14 from '../assets/sobre/coisas-14.png';
-import coisa12 from '../assets/sobre/coisas-12.png';
-import coisa13 from '../assets/sobre/coisas-13.png';
-import noite from '../assets/sobre/noite-embacada.png';
-import fotoSobre from '../assets/sobre/foto-sobre.jpeg';
-import foto8321 from '../assets/sobre/foto-8321.jpg';
-import foto8322 from '../assets/sobre/foto-8322.jpg';
-import foto8323 from '../assets/sobre/foto-8323.jpg';
+import gif from '../assets/marca/julia-pedo.gif';
+import wordmarkPreto from '../assets/marca/wordmark-preto.png';
+// fotos da seção "sobre mim" e coisas que saem da cabeça: src/content/sobre/julia.md (editáveis no Pages CMS)
+const { fotos, coisas: img } = (await getEntry('sobre', 'julia'))!.data;
 
 // coisas que saem da cabeça dela ao pairar no GIF: w = largura, dx/dy = destino a partir da cabeça, r = giro (unidade k, ver .estrela)
 const coisas = [
   // posições escolhidas à mão (modo ?editar), em unidades k a partir da cabeça
-  { id: 'coisas-09', src: coisa09, w: 27.54, dx: -40, dy: -9.3, r: -4, d: 0 },
-  { id: 'noite-embacada', soDesktop: true, src: noite, w: 18, dx: -62.0, dy: 18, r: 3, d: 120 }, // mesma altura da coisas-09
-  { id: 'coisas-11', soDesktop: true, src: coisa14, w: 5.5, dx: -37.5, dy: 39.4, r: 14, d: 240 }, // coisas-14 no lugar da 11: mesma altura (21,8k), girada 14° p/ a direita,
-  { id: 'coisas-10', soDesktop: true, src: coisa10, w: 22.95, dx: 35.5, dy: -14.6, r: 3, d: 60 },
-  { id: 'coisas-13', src: coisa13, w: 20.25, dx: 54.1, dy: 5.3, r: 4, d: 180 }, // entre as duas, mais para fora
-  { id: 'coisas-12', soDesktop: true, src: coisa12, w: 23.9, dx: 38.5, dy: 29.8, r: -4, d: 300 },
+  { id: 'coisas-09', src: img.esquerdaAlto, w: 27.54, dx: -40, dy: -9.3, r: -4, d: 0 },
+  { id: 'noite-embacada', soDesktop: true, src: img.esquerdaLonge, w: 18, dx: -62.0, dy: 18, r: 3, d: 120 }, // mesma altura da coisas-09
+  { id: 'coisas-11', soDesktop: true, src: img.esquerdaBaixo, w: 5.5, dx: -37.5, dy: 39.4, r: 14, d: 240 }, // coisas-14 no lugar da 11: mesma altura (21,8k), girada 14° p/ a direita,
+  { id: 'coisas-10', soDesktop: true, src: img.direitaAlto, w: 22.95, dx: 35.5, dy: -14.6, r: 3, d: 60 },
+  { id: 'coisas-13', src: img.direitaLonge, w: 20.25, dx: 54.1, dy: 5.3, r: 4, d: 180 }, // entre as duas, mais para fora
+  { id: 'coisas-12', soDesktop: true, src: img.direitaBaixo, w: 23.9, dx: 38.5, dy: 29.8, r: -4, d: 300 },
 ];
 import juju from '../assets/juju-vermelho.svg';
 import { ArrowDown, ArrowUpRight, ChevronsRight, Globe, LayoutGrid } from '@lucide/astro';
@@ -101,13 +93,12 @@ const projetosLista = await Promise.all(
     <!-- seção da foto: offwhite, foto em full-bleed à esquerda (800px de altura), cantos que se endireitam ao entrar -->
     <section class="foto-seq" aria-label="Sobre mim">
       <div class="grao"><i class="grao__c grao__c--escuro"></i></div>
-      <figure class="foto-seq__fig foto-seq__fig--a"><Image src={foto8323} alt="" widths={[600, 1200]} sizes="30vw" loading="eager" /></figure>
+      <figure class="foto-seq__fig foto-seq__fig--a"><Image src={fotos.grande} alt={fotos.grandeAlt ?? ''} widths={[600, 1200]} sizes="30vw" loading="eager" /></figure>
       <div class="foto-seq__txt"><p class="foto-seq__texto" data-tx="foto">Comecei a trabalhar com design aos 15 e nunca consegui largar o vício</p></div>
       <div class="foto-seq__txt foto-seq__txt--topo"><p class="foto-seq__mini" data-tx="foto" data-tx-atraso="200" style="--atraso:200ms">Sou de Porto Alegre e estudo Design na PUCRS</p></div>
       <div class="foto-seq__txt foto-seq__txt--base"><p class="foto-seq__texto foto-seq__texto--m" data-tx="foto" data-tx-atraso="350" style="--atraso:350ms">Hoje sou Designer JR no Studio Pirá <br class="so-web" />e faço freelas, de social media a identidade visual <br class="so-web" />e capas de disco.</p></div>
-      <figure class="foto-seq__fig foto-seq__fig--b"><Image src={foto8322} alt="" widths={[500, 1000]} sizes="25vw" loading="eager" /></figure>
-      <figure class="foto-seq__fig foto-seq__fig--c"><Image src={fotoSobre} alt="Júlia Pedó" widths={[500, 1000]} sizes="25vw" loading="eager" /></figure>
-      <figure class="foto-seq__fig foto-seq__fig--d"><Image src={foto8321} alt="" widths={[400, 800]} sizes="20vw" loading="eager" /></figure>
+      <figure class="foto-seq__fig foto-seq__fig--b"><Image src={fotos.topo} alt={fotos.topoAlt ?? ''} widths={[500, 1000]} sizes="25vw" loading="eager" /></figure>
+      <figure class="foto-seq__fig foto-seq__fig--c"><Image src={fotos.centro} alt={fotos.centroAlt ?? ''} widths={[500, 1000]} sizes="25vw" loading="eager" /></figure>
     </section>
     <section class="sobre-seq" aria-label="Sobre">
       <div class="grao"><i class="grao__c grao__c--escuro"></i><i class="grao__c grao__c--claro"></i></div>
@@ -159,7 +150,7 @@ const projetosLista = await Promise.all(
       <a class="rod-seq__credito" data-credito href="https://www.linkedin.com/in/georgialirahoffmann/" data-href-mobile="https://www.georgiahoffmann.com/" target="_blank" rel="noopener"><span data-tx="rod" data-tx-atraso="300" style="--atraso:300ms">Powered by Georgia Hoffmann</span><ArrowUpRight size={'1em'} strokeWidth={2.2} aria-hidden="true" /></a>
     </section>
     <!-- adesivo coisas-12: no mobile, arrastável por todas as seções do sobre (scripts/editar-coisas.ts); web: oculto -->
-      <Image class="foto-seq__sticker" src={coisa12} alt="" widths={[300, 600]} sizes="20vw" loading="eager" />
+      <Image class="foto-seq__sticker" src={img.direitaBaixo} alt="" widths={[300, 600]} sizes="20vw" loading="eager" />
 
     </div>
     </div>
@@ -501,7 +492,6 @@ const projetosLista = await Promise.all(
   .foto-seq__fig--a { grid-column: 1 / 6; grid-row: 1 / -1; margin: calc(var(--my) * -1) 0 calc(var(--my) * -1) calc(var(--mx) * -1); } /* Foto 8323: sangra esquerda, topo e base */
   .foto-seq__fig--b { grid-column: 9 / 12; grid-row: 1 / 7; } /* Foto 8322 */
   .foto-seq__fig--c { grid-column: 6 / 9; grid-row: 5 / 11; } /* Foto sobre */
-  .foto-seq__fig--d { display: none; } /* Foto 8321: fora do layout */
   .foto-seq__txt {
     position: relative;
     display: flex;

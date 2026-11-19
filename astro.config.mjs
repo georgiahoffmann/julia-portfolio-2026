@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
 // Só no `npm run dev`: o modo de edição da galeria (`/?editar`) salva a nova ordem direto nos arquivos de
-// src/content/posts (`ordem` = web, `ordemMobile` = mobile). No site publicado esta rota não existe.
+// src/content/posts/{carrosseis,avulsos} (`ordem` = web, `ordemMobile` = mobile). No site publicado esta rota não existe.
 const ID = /^[a-z0-9-]+$/;
 const num = '-?\\d+(?:\\.\\d+)?';
 const salvarOrdem = {
@@ -39,7 +39,9 @@ const salvarOrdem = {
         req.on('end', () => {
           try {
             const { web, mobile } = JSON.parse(corpo);
-            const arq = (/** @type {string} */ id) => fileURLToPath(new URL(`./src/content/posts/${id}.md`, import.meta.url));
+            // os posts ficam em src/content/posts/carrosseis/ ou src/content/posts/avulsos/
+            const arq = (/** @type {string} */ id) =>
+              ['carrosseis', 'avulsos'].map((p) => fileURLToPath(new URL(`./src/content/posts/${p}/${id}.md`, import.meta.url))).find(existsSync) ?? '';
             const valido = (/** @type {unknown} */ l) => Array.isArray(l) && l.length > 0 && l.every((id) => typeof id === 'string' && ID.test(id) && existsSync(arq(id)));
             if (!valido(web) || !valido(mobile) || new Set(web).size !== web.length || [...web].sort().join() !== [...mobile].sort().join()) throw new Error('lista inválida');
             const textos = Object.fromEntries(web.map((/** @type {string} */ id) => [id, readFileSync(arq(id), 'utf8')]));

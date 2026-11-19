@@ -2,6 +2,8 @@
 import '../styles/global.css';
 import Nav from '../components/Nav.astro';
 import Cursor from '../components/Cursor.astro';
+import { getEntry } from 'astro:content';
+import { getImage } from 'astro:assets';
 
 interface Props {
   title?: string;
@@ -14,11 +16,14 @@ interface Props {
   /** abertura em andamento: a navbar fica oculta (a página tira a classe quando quiser mostrá-la) */
   intro?: boolean;
 }
+// título, descrição e imagem de compartilhamento: src/content/sobre/julia.md (editável no Pages CMS)
+const site = (await getEntry('sobre', 'julia'))!.data.site;
 const {
-  title = 'Julia Pedó – Designer Visual em Porto Alegre',
-  description = 'Julia Pedó – Designer Visual em Porto Alegre.',
+  title = site.titulo,
+  description = site.descricao,
   height = 0, mobileHeight = 0, canvas = false, intro = false } = Astro.props;
-const ogImage = Astro.site ? new URL('/miniatura.jpg', Astro.site).href : undefined;
+const og = await getImage({ src: site.imagem, width: 1200, height: 630, fit: 'cover', format: 'jpg' });
+const ogImage = Astro.site ? new URL(og.src, Astro.site).href : undefined;
 const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : undefined;
 ---
 
@@ -39,7 +44,7 @@ const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : un
     {ogImage && <meta property="og:image" content={ogImage} />}
     {ogImage && <meta property="og:image:width" content="1200" />}
     {ogImage && <meta property="og:image:height" content="630" />}
-    <meta property="og:image:alt" content="Crachá do Studio Pirá com a foto de Julia Pedó" />
+    {site.imagemAlt && <meta property="og:image:alt" content={site.imagemAlt} />}
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />

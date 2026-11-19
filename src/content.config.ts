@@ -6,8 +6,9 @@ import { z } from 'astro/zod';
 const rect = z.object({ x: z.number(), y: z.number(), w: z.number(), h: z.number() });
 
 // POSTS — cada post da galeria é um arquivo. `mobile` ausente = não aparece no layout mobile (como no original).
+// Ficam em src/content/posts/carrosseis/ (com `slides`) e src/content/posts/avulsos/; o id é só o nome do arquivo.
 const posts = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/posts' }),
+  loader: glob({ pattern: '**/*.md', base: './src/content/posts', generateId: ({ entry }) => entry.split('/').pop()!.replace(/\.md$/, '') }),
   schema: ({ image }) =>
     z.object({
       title: z.string(),
@@ -42,18 +43,39 @@ const projetos = defineCollection({
     }),
 });
 
-// SOBRE — textos institucionais (corpo em Markdown = parágrafo longo da intro).
+// SOBRE — contato, título/descrição/imagem de compartilhamento do site, as 3 fotos da seção "sobre mim" e as coisas da cabeça.
+// Editado pela Júlia no Pages CMS (.pages.yml).
 const sobre = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/sobre' }),
   schema: ({ image }) =>
     z.object({
-    nome: z.string(),
-    funcao: z.string(),
-    resumo: z.string(),
-    email: z.string(),
-    instagram: z.string(),
-    linkedin: z.string(),
-  }),
+      email: z.string(),
+      instagram: z.string(),
+      linkedin: z.string(), // só o usuário: linkedin.com/in/<usuário>
+      site: z.object({
+        titulo: z.string(),
+        descricao: z.string(),
+        imagem: image(), // prévia ao compartilhar o link (recortada em 1200×630)
+        imagemAlt: z.string().optional(),
+      }),
+      fotos: z.object({
+        grande: image(), // foto grande à esquerda
+        grandeAlt: z.string().optional(),
+        topo: image(), // foto do canto superior direito
+        topoAlt: z.string().optional(),
+        centro: image(), // foto do meio
+        centroAlt: z.string().optional(),
+      }),
+      // coisas que saem da cabeça dela ao pairar no GIF (posição e tamanho ficam no código: index.astro)
+      coisas: z.object({
+        esquerdaAlto: image(),
+        esquerdaLonge: image(),
+        esquerdaBaixo: image(),
+        direitaAlto: image(),
+        direitaLonge: image(),
+        direitaBaixo: image(), // também é o adesivo da seção de fotos
+      }),
+    }),
 });
 
 export const collections = { posts, projetos, sobre };
